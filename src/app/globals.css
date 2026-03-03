@@ -1,0 +1,33 @@
+/* src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background-color: #013220; /* Emerald Green default */
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+/* NUCLEAR HIDE: Lahat ng Dev Indicators */
+nextjs-portal,
+#nextjs-portal,
+.nextjs-static-indicator,
+[data-nextjs-static-indicator],
+vercel-live-feedback,
+[data-vercel-toolbar] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
