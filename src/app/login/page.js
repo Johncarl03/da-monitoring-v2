@@ -21,12 +21,25 @@ export default function DALogin() {
     e.preventDefault();
     setLoading(true);
     setMsg({ type: '', text: '' }); 
+
+    // --- SECURITY CONFIG: ILAGAY DITO ANG AUTHORIZED EMAIL MO ---
+    const AUTHORIZED_EMAIL = "departmentofagriculture1234@gmail.com"; 
+
     try {
+      // 1. Check muna kung authorized email ang gamit
+      if (email.toLowerCase() !== AUTHORIZED_EMAIL.toLowerCase()) {
+        setMsg({ type: 'error', text: 'Access Denied: Unauthorized Administrator.' });
+        setLoading(false);
+        return; 
+      }
+
+      // 2. Kung authorized, saka i-check ang password sa Firebase
       await signInWithEmailAndPassword(auth, email, password);
+      
       setMsg({ type: 'success', text: 'Access Granted! Redirecting...' });
       setTimeout(() => router.push('/admin/matcher'), 1500);
     } catch (error) {
-      setMsg({ type: 'error', text: 'Invalid Email or Passcode.' });
+      setMsg({ type: 'error', text: 'Invalid Passcode or Connection Error.' });
       setLoading(false);
     }
   };
