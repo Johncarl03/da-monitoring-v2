@@ -246,11 +246,11 @@ export default function DAGreenMatcher() {
                     onClick={() => !isScanning && masterlist.length > 0 && fileInputRef.current.click()} 
                     style={{...styles.uploadArea, opacity: masterlist.length === 0 ? 0.5 : 1, cursor: masterlist.length === 0 ? 'not-allowed' : 'pointer'}}
                   >
-                    {isScanning ? <Loader2 size={32} className="spin" color="#1b5e20" /> : <UploadCloud size={32} color="#1b5e20" />}
-                    <span style={{fontSize: '14px', fontWeight: '800', color: '#1e293b', marginTop: '10px'}}>
+                    {isScanning ? <Loader2 size={32} className="spin" color="#81c784" /> : <UploadCloud size={32} color="#81c784" />}
+                    <span style={{fontSize: '14px', fontWeight: '800', color: '#143d16', marginTop: '10px'}}>
                       {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
                     </span>
-                    <p style={{fontSize: '11px', color: '#94a3b8', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
+                    <p style={{fontSize: '11px', color: '#4a614a', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
                     <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
                   </div>
                 </div>
@@ -266,7 +266,7 @@ export default function DAGreenMatcher() {
                     </div>
                     <div style={styles.statBox}>
                       <span style={styles.statLabel}>Database</span>
-                      <span style={{...styles.statValue, color: '#1b5e20'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
+                      <span style={{...styles.statValue, color: '#143d16'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
                     </div>
                   </div>
                   
@@ -280,16 +280,16 @@ export default function DAGreenMatcher() {
                           <p style={styles.activitySub}>{scan.barangay}, {scan.month} {scan.year}</p>
                         </div>
                       </div>
-                    )) : <p style={{fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '10px'}}>No recent activity found.</p>}
+                    )) : <p style={{fontSize: '12px', color: '#4a614a', textAlign: 'center', padding: '10px'}}>No recent activity found.</p>}
                   </div>
                 </div>
               </div>
             </motion.div>
           ) : (
             <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.resultGridThreeCol}>
-              <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#f0fdf4" data={hasStub} type="matched" groupFn={groupData} />
-              <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#ef4444" bg="#fef2f2" data={missingStub} type="missing" groupFn={groupData} />
-              <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#f59e0b" bg="#fffbeb" data={alreadyExists} type="duplicate" groupFn={groupData} />
+              <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#c8e6c9" data={hasStub} type="matched" groupFn={groupData} />
+              <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#991b1b" bg="#fecaca" data={missingStub} type="missing" groupFn={groupData} />
+              <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#92400e" bg="#fde68a" data={alreadyExists} type="duplicate" groupFn={groupData} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -300,7 +300,7 @@ export default function DAGreenMatcher() {
         .spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #8ba88b; border-radius: 10px; }
       `}</style>
     </div>
   );
@@ -310,7 +310,7 @@ export default function DAGreenMatcher() {
 const SidebarBtn = ({ icon, label, active, onClick }) => (
   <button onClick={onClick} style={{
     display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-    backgroundColor: active ? '#f1f8e9' : 'transparent', color: active ? '#1b5e20' : '#81c784',
+    backgroundColor: active ? 'rgba(255,255,255,0.15)' : 'transparent', color: active ? '#ffffff' : '#81c784',
     border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', width: '100%', textAlign: 'left', transition: '0.2s'
   }}>{icon} <span>{label}</span></button>
 );
@@ -345,78 +345,78 @@ const ResultCol = ({ title, icon, color, bg, data, type, groupFn }) => (
 );
 
 const EmptyState = ({ msg }) => (
-  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+  <div style={{ textAlign: 'center', padding: '40px', color: '#4a614a' }}>
     <Database size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
     <p style={{fontSize: '11px'}}>{msg}</p>
   </div>
 );
 
-// --- Styles (Agricultural Theme) ---
+// --- Styles (Dimmed Agricultural Theme) ---
 const styles = {
-  container: { display: 'flex', height: '100vh', backgroundColor: '#e8f5e9', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
-  sidebar: { width: '260px', backgroundColor: '#fff', borderRight: '1px solid #c8e6c9', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  container: { display: 'flex', height: '100vh', backgroundColor: '#d1dbd1', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
+  sidebar: { width: '260px', backgroundColor: '#143d16', borderRight: '1px solid #0d290f', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
   logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
   logoImg: { width: '38px', height: '38px' },
-  logoText: { fontSize: '16px', fontWeight: '900', color: '#1b5e20', margin: 0 },
-  logoTag: { fontSize: '9px', fontWeight: '700', color: '#94a3b8', margin: 0 },
+  logoText: { fontSize: '16px', fontWeight: '900', color: '#ffffff', margin: 0 },
+  logoTag: { fontSize: '9px', fontWeight: '700', color: '#a3b8a3', margin: 0 },
   nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
   
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(232, 245, 233, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
-  modalCard: { background: '#fff', width: '90%', maxWidth: '400px', padding: '30px', borderRadius: '24px', textAlign: 'center', border: '1px solid #c8e6c9' },
-  modalIconBoxRed: { width: '50px', height: '50px', background: '#fff1f2', color: '#e11d48', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalIconBoxGreen: { width: '50px', height: '50px', background: '#f1f8e9', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalIconBoxAmber: { width: '50px', height: '50px', background: '#fffbeb', color: '#d97706', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#1b5e20' },
-  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.6' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(20, 61, 22, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
+  modalCard: { background: '#f1f5f1', width: '90%', maxWidth: '400px', padding: '30px', borderRadius: '24px', textAlign: 'center', border: '1px solid #acc2ac' },
+  modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxGreen: { width: '50px', height: '50px', background: '#dcfce7', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxAmber: { width: '50px', height: '50px', background: '#fef3c7', color: '#92400e', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#143d16' },
+  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' },
   modalActions: { display: 'flex', gap: '12px' },
-  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #c8e6c9', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#64748b' },
-  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#e11d48', color: '#fff', fontWeight: '700', cursor: 'pointer' },
-  primaryBtn: { width: '100%', padding: '12px', background: '#1b5e20', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
+  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #acc2ac', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#4b5563' },
+  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#991b1b', color: '#fff', fontWeight: '700', cursor: 'pointer' },
+  primaryBtn: { width: '100%', padding: '12px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
 
-  sidebarWidget: { padding: '16px', background: '#f1f8e9', borderRadius: '16px', border: '1px solid #c8e6c9', marginBottom: '20px' },
-  widgetLabel: { fontSize: '10px', fontWeight: '800', color: '#1b5e20', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' },
-  progressTrack: { height: '8px', background: '#fff', borderRadius: '4px', overflow: 'hidden' },
-  progressFill: { height: '100%', background: '#1b5e20', borderRadius: '4px', transition: 'width 0.5s ease' },
-  widgetStat: { fontSize: '10px', fontWeight: '700', color: '#1b5e20' },
+  sidebarWidget: { padding: '16px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px' },
+  widgetLabel: { fontSize: '10px', fontWeight: '800', color: '#81c784', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' },
+  progressTrack: { height: '8px', background: '#0d290f', borderRadius: '4px', overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#81c784', borderRadius: '4px', transition: 'width 0.5s ease' },
+  widgetStat: { fontSize: '10px', fontWeight: '700', color: '#ffffff' },
 
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#fff1f2', color: '#e11d48', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#2d0a0a', color: '#ff8a8a', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
   main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
   headerInfo: { display: 'flex', flexDirection: 'column' },
-  title: { fontSize: '28px', fontWeight: '900', color: '#1b5e20', margin: 0 },
-  subtitle: { color: '#64748b', fontSize: '14px', margin: 0 },
-  reScanBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#1b5e20', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' },
+  title: { fontSize: '28px', fontWeight: '900', color: '#0d290f', margin: 0 },
+  subtitle: { color: '#4a614a', fontSize: '14px', margin: 0 },
+  reScanBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' },
   contentGrid: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start' },
-  card: { background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #c8e6c9' },
-  cardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '800', color: '#1b5e20', marginBottom: '20px' },
+  card: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac' },
+  cardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '800', color: '#143d16', marginBottom: '20px' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '16px' },
   field: { display: 'flex', flexDirection: 'column', gap: '6px' },
-  label: { fontSize: '10px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.8px' },
-  select: { padding: '10px', background: '#f8fafc', border: '1px solid #c8e6c9', borderRadius: '10px', fontSize: '13px', fontWeight: '600', outline: 'none' },
-  uploadArea: { border: '2px dashed #c8e6c9', borderRadius: '16px', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#f1f8e9' },
+  label: { fontSize: '10px', fontWeight: '800', color: '#4a614a', letterSpacing: '0.8px' },
+  select: { padding: '10px', background: '#f0f4f0', border: '1px solid #acc2ac', borderRadius: '10px', fontSize: '13px', fontWeight: '600', outline: 'none', color: '#143d16' },
+  uploadArea: { border: '2px dashed #8ba88b', borderRadius: '16px', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#d8e4d8' },
   infoColumn: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  infoCard: { background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #c8e6c9' },
-  infoCardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '800', color: '#1b5e20', marginBottom: '16px' },
+  infoCard: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac' },
+  infoCardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '800', color: '#143d16', marginBottom: '16px' },
   statsRow: { display: 'flex', gap: '16px', marginBottom: '24px' },
-  statBox: { flex: 1, padding: '16px', background: '#f1f8e9', borderRadius: '16px', border: '1px solid #c8e6c9', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center', textAlign: 'center' },
-  statLabel: { fontSize: '9px', fontWeight: '800', color: '#81c784', textTransform: 'uppercase' },
-  statValue: { fontSize: '18px', fontWeight: '900', color: '#1b5e20' },
+  statBox: { flex: 1, padding: '16px', background: '#d8e4d8', borderRadius: '16px', border: '1px solid #acc2ac', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center', textAlign: 'center' },
+  statLabel: { fontSize: '9px', fontWeight: '800', color: '#4a614a', textTransform: 'uppercase' },
+  statValue: { fontSize: '18px', fontWeight: '900', color: '#143d16' },
   activityList: { display: 'flex', flexDirection: 'column', gap: '12px' },
   activityItem: { display: 'flex', gap: '12px', alignItems: 'flex-start' },
-  activityDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#81c784', marginTop: '5px' },
-  activityText: { fontSize: '12px', margin: 0, color: '#1b5e20' },
-  activitySub: { fontSize: '10px', color: '#94a3b8', margin: 0 },
+  activityDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#143d16', marginTop: '5px' },
+  activityText: { fontSize: '12px', margin: 0, color: '#143d16' },
+  activitySub: { fontSize: '10px', color: '#4a614a', margin: 0 },
   resultGridThreeCol: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', height: 'calc(100vh - 180px)', minHeight: '400px' },
-  resultColumn: { background: '#fff', borderRadius: '20px', border: '1px solid #c8e6c9', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  resultColumn: { background: '#f0f4f0', borderRadius: '20px', border: '1px solid #acc2ac', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   columnHeader: { padding: '16px 20px', borderBottom: '2px solid' },
   columnTitle: { margin: 0, fontSize: '13px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' },
   scrollArea: { flex: 1, overflowY: 'auto', padding: '16px' },
   townGroup: { marginBottom: '24px' },
-  muniTitle: { fontSize: '13px', fontWeight: '800', color: '#1b5e20', marginBottom: '12px', borderBottom: '1px solid #f1f8e9', paddingBottom: '4px' },
+  muniTitle: { fontSize: '13px', fontWeight: '800', color: '#143d16', marginBottom: '12px', borderBottom: '1px solid #acc2ac', paddingBottom: '4px' },
   brgyBox: { marginBottom: '16px', paddingLeft: '12px' },
   brgyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
-  brgyName: { fontSize: '11px', fontWeight: '700', color: '#334155' },
-  faBadge: { fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', color: '#1b5e20' },
+  brgyName: { fontSize: '11px', fontWeight: '700', color: '#143d16' },
+  faBadge: { fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', color: '#143d16' },
   farmerList: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  farmerItem: { padding: '6px 12px', background: '#f8fafc', fontSize: '11px', borderRadius: '0 6px 6px 0', borderLeft: '3px solid' }
+  farmerItem: { padding: '6px 12px', background: '#e2ede2', fontSize: '11px', borderRadius: '0 6px 6px 0', borderLeft: '3px solid', color: '#2d3b2d' }
 };

@@ -132,7 +132,7 @@ export default function HistoryPage() {
           </div>
           
           <div style={styles.searchBox}>
-            <Search size={18} color="#1b5e20" style={{ position: 'absolute', left: '15px', opacity: 0.6 }} />
+            <Search size={18} color="#143d16" style={{ position: 'absolute', left: '15px', opacity: 0.6 }} />
             <input 
               placeholder="Type name or location..."
               style={styles.searchInput}
@@ -145,7 +145,7 @@ export default function HistoryPage() {
         <div style={styles.filterBar}>
           <div style={styles.filterGroup}>
              <div style={styles.selectWrapper}>
-                <Calendar size={14} style={{marginRight: '8px', color: '#1b5e20'}} />
+                <Calendar size={14} style={{marginRight: '8px', color: '#143d16'}} />
                 <select value={month} onChange={(e) => setMonth(e.target.value)} style={styles.select}>
                   {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -153,7 +153,7 @@ export default function HistoryPage() {
                 </select>
              </div>
              <div style={styles.selectWrapper}>
-                <Filter size={14} style={{marginRight: '8px', color: '#1b5e20'}} />
+                <Filter size={14} style={{marginRight: '8px', color: '#143d16'}} />
                 <select value={year} onChange={(e) => setYear(e.target.value)} style={styles.select}>
                   {yearsOptions.map(y => (
                     <option key={y} value={y}>{y}</option>
@@ -194,7 +194,7 @@ export default function HistoryPage() {
                   <td style={styles.tdCenter}>
                     <span style={styles.faBadge}>{item.association || item.fa || '---'}</span>
                   </td>
-                  <td style={{...styles.tdCenter, color: '#64748b', fontSize: '13px'}}>{item.municipality}</td>
+                  <td style={{...styles.tdCenter, color: '#4a614a', fontSize: '13px'}}>{item.municipality}</td>
                   <td style={styles.tdDim}>{item.barangay}</td>
                   <td style={styles.tdCenter}>
                     {viewMode === 'submitted' ? (
@@ -213,7 +213,7 @@ export default function HistoryPage() {
               )) : (
                 <tr>
                   <td colSpan="5" style={styles.emptyState}>
-                    <Search size={40} color="#c8e6c9" style={{marginBottom: '10px'}} /><br/>
+                    <Search size={40} color="#acc2ac" style={{marginBottom: '10px'}} /><br/>
                     {searchTerm.trim() ? "No results found." : "Start typing to view records."}
                   </td>
                 </tr>
@@ -223,7 +223,7 @@ export default function HistoryPage() {
         </div>
       </main>
 
-      {/* MODALS REMAIN THE SAME */}
+      {/* --- Modals Section --- */}
       <AnimatePresence>
         {isLogoutModalOpen && (
           <div style={styles.modalOverlay}>
@@ -256,10 +256,10 @@ export default function HistoryPage() {
       <style jsx global>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         .delete-hover-btn { transition: all 0.2s ease; }
-        .delete-hover-btn:hover { color: #e11d48 !important; transform: scale(1.05); }
+        .delete-hover-btn:hover { color: #ef4444 !important; transform: scale(1.05); }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #8ba88b; border-radius: 10px; }
       `}</style>
     </div>
   );
@@ -268,54 +268,56 @@ export default function HistoryPage() {
 const SidebarBtn = ({ icon, label, active, onClick }) => (
   <button onClick={onClick} style={{
     display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-    backgroundColor: active ? '#f1f8e9' : 'transparent', color: active ? '#1b5e20' : '#81c784',
+    backgroundColor: active ? 'rgba(255,255,255,0.15)' : 'transparent', color: active ? '#ffffff' : '#81c784',
     border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', width: '100%', textAlign: 'left', transition: '0.2s'
   }}>{icon} <span>{label}</span></button>
 );
 
 const styles = {
-  container: { display: 'flex', height: '100vh', backgroundColor: '#e8f5e9', fontFamily: "'Inter', sans-serif" },
-  sidebar: { width: '260px', backgroundColor: '#fff', borderRight: '1px solid #c8e6c9', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  container: { display: 'flex', height: '100vh', backgroundColor: '#d1dbd1', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
+  sidebar: { width: '260px', backgroundColor: '#143d16', borderRight: '1px solid #0d290f', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
   logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
   logoImg: { width: '38px', height: '38px' },
-  logoText: { fontSize: '16px', fontWeight: '900', color: '#1b5e20', margin: 0 },
-  logoTag: { fontSize: '9px', fontWeight: '700', color: '#94a3b8', margin: 0 },
+  logoText: { fontSize: '16px', fontWeight: '900', color: '#ffffff', margin: 0 },
+  logoTag: { fontSize: '9px', fontWeight: '700', color: '#a3b8a3', margin: 0 },
   nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#fff1f2', color: '#e11d48', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#2d0a0a', color: '#ff8a8a', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  
   main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
-  title: { fontSize: '28px', fontWeight: '900', color: '#1b5e20', margin: 0 },
-  subtitle: { color: '#64748b', fontSize: '14px', margin: 0 },
+  title: { fontSize: '28px', fontWeight: '900', color: '#0d290f', margin: 0 },
+  subtitle: { color: '#4a614a', fontSize: '14px', margin: 0 },
   
-  // ETO YUNG BINAGO PARA MAG-MATCH SA MASTERLIST
   searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
-  searchInput: { padding: '12px 20px 12px 45px', borderRadius: '50px', border: '1px solid #c8e6c9', width: '300px', fontSize: '14px', outline: 'none' },
+  searchInput: { padding: '12px 20px 12px 45px', borderRadius: '50px', border: '1px solid #acc2ac', background: '#e2ede2', width: '300px', fontSize: '14px', outline: 'none', color: '#143d16' },
 
   filterBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
   filterGroup: { display: 'flex', gap: '12px' },
-  selectWrapper: { display: 'flex', alignItems: 'center', background: '#fff', padding: '6px 14px', borderRadius: '12px', border: '1px solid #c8e6c9' },
-  select: { border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontWeight: '700', color: '#1e293b', cursor: 'pointer' },
-  tabGroup: { display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.5)', padding: '4px', borderRadius: '14px' },
-  activeTab: { display: 'flex', alignItems: 'center', gap: '6px', background: '#1b5e20', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
-  activeTabRed: { display: 'flex', alignItems: 'center', gap: '6px', background: '#e11d48', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
-  inactiveTab: { display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#81c784', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
-  tableCard: { background: '#fff', borderRadius: '24px', border: '1px solid #c8e6c9', overflow: 'hidden' },
+  selectWrapper: { display: 'flex', alignItems: 'center', background: '#e2ede2', padding: '8px 14px', borderRadius: '12px', border: '1px solid #acc2ac' },
+  select: { border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontWeight: '700', color: '#143d16', cursor: 'pointer' },
+  tabGroup: { display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.3)', padding: '4px', borderRadius: '14px' },
+  activeTab: { display: 'flex', alignItems: 'center', gap: '6px', background: '#143d16', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+  activeTabRed: { display: 'flex', alignItems: 'center', gap: '6px', background: '#991b1b', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+  inactiveTab: { display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#4a614a', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
+  
+  tableCard: { background: '#e2ede2', borderRadius: '24px', border: '1px solid #acc2ac', overflow: 'hidden' },
   table: { width: '100%', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', padding: '18px 24px', background: '#f1f8e9', fontSize: '11px', fontWeight: '800', color: '#1b5e20', borderBottom: '1px solid #c8e6c9' },
-  tr: { borderBottom: '1px solid #f1f8e9' },
-  tdName: { padding: '18px 24px', fontWeight: '700', color: '#1e293b', fontSize: '13px' },
-  tdDim: { padding: '18px 24px', color: '#64748b', fontSize: '13px' },
+  th: { textAlign: 'left', padding: '18px 24px', background: '#d8e4d8', fontSize: '11px', fontWeight: '800', color: '#143d16', borderBottom: '1px solid #acc2ac' },
+  tr: { borderBottom: '1px solid #acc2ac' },
+  tdName: { padding: '18px 24px', fontWeight: '700', color: '#0d290f', fontSize: '13px' },
+  tdDim: { padding: '18px 24px', color: '#4a614a', fontSize: '13px' },
   tdCenter: { padding: '18px 24px', textAlign: 'center', verticalAlign: 'middle' },
-  faBadge: { background: '#f1f8e9', color: '#166534', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', display: 'inline-block', border: '1px solid #c8e6c9' },
-  delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontWeight: '800', fontSize: '11px', padding: '6px 12px' },
-  missingLabel: { display: 'inline-flex', alignItems: 'center', color: '#e11d48', fontWeight: '800', fontSize: '11px', background: '#fff1f2', padding: '6px 12px', borderRadius: '8px' },
-  emptyState: { padding: '100px', textAlign: 'center', color: '#c8e6c9' },
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(232, 245, 233, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modalContent: { background: '#fff', padding: '30px', borderRadius: '24px', width: '90%', maxWidth: '400px', textAlign: 'center', border: '1px solid #c8e6c9' },
-  modalIconBoxRed: { width: '50px', height: '50px', background: '#fff1f2', color: '#e11d48', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalTitle: { fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0 0 10px 0' },
-  modalText: { fontSize: '14px', color: '#64748b', margin: '0 0 25px 0', lineHeight: '1.6' },
+  faBadge: { background: '#f0f4f0', color: '#143d16', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', display: 'inline-block', border: '1px solid #acc2ac' },
+  delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#8ba88b', cursor: 'pointer', fontWeight: '800', fontSize: '11px', padding: '6px 12px' },
+  missingLabel: { display: 'inline-flex', alignItems: 'center', color: '#991b1b', fontWeight: '800', fontSize: '11px', background: '#fee2e2', padding: '6px 12px', borderRadius: '8px' },
+  emptyState: { padding: '100px', textAlign: 'center', color: '#acc2ac' },
+
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(20, 61, 22, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 },
+  modalContent: { background: '#f1f5f1', padding: '30px', borderRadius: '24px', width: '90%', maxWidth: '400px', textAlign: 'center', border: '1px solid #acc2ac' },
+  modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalTitle: { fontSize: '18px', fontWeight: '800', color: '#143d16', margin: '0 0 10px 0' },
+  modalText: { fontSize: '14px', color: '#4b5563', margin: '0 0 25px 0', lineHeight: '1.6' },
   modalActions: { display: 'flex', gap: '10px' },
-  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #c8e6c9', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#64748b' },
-  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#e11d48', color: '#fff', fontWeight: '700', cursor: 'pointer' }
+  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #acc2ac', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#4b5563' },
+  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#991b1b', color: '#fff', fontWeight: '700', cursor: 'pointer' }
 };

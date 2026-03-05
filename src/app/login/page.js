@@ -1,9 +1,8 @@
 "use client";
 import React, { useState } from 'react';
 import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -13,7 +12,7 @@ export default function DALogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Clean English notification state
+  // Notification state
   const [msg, setMsg] = useState({ type: '', text: '' });
 
   const router = useRouter();
@@ -32,20 +31,6 @@ export default function DALogin() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) { 
-      setMsg({ type: 'error', text: 'Please enter your Authorized Email first.' }); 
-      return; 
-    }
-    setMsg({ type: 'success', text: `Sending reset link to ${email}...` });
-    try {
-      await sendPasswordResetEmail(auth, email);
-      setMsg({ type: 'success', text: 'Reset link sent successfully!' });
-    } catch (error) { 
-      setMsg({ type: 'error', text: 'Error: Email not found.' }); 
-    }
-  };
-
   return (
     <div style={containerStyle}>
       <div style={overlayStyle}></div>
@@ -61,9 +46,9 @@ export default function DALogin() {
              <img src="/da-logo.png" alt="DA Logo" style={logoStyle} />
           </div>
 
-          <header style={{ marginBottom: '10px' }}>
+          <header style={{ marginBottom: '20px' }}>
             <h1 style={titleStyle}>ADMIN PORTAL</h1>
-            <p style={subtitleStyle}>LOGIN AS ADMINISTRATOR</p> 
+            <p style={subtitleStyle}>PRIVATE ACCESS ONLY</p> 
           </header>
 
           <AnimatePresence>
@@ -76,7 +61,7 @@ export default function DALogin() {
                   padding: '10px',
                   borderRadius: '10px',
                   fontSize: '11px',
-                  marginBottom: '10px',
+                  marginBottom: '15px',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
@@ -123,12 +108,6 @@ export default function DALogin() {
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            
-            <div style={{ textAlign: 'right', marginTop: '-10px' }}>
-              <button type="button" onClick={handleForgotPassword} style={forgotButtonStyle}>
-                Forgot Passcode?
-              </button>
-            </div>
 
             <motion.button 
               whileHover={{ scale: 1.01 }}
@@ -137,7 +116,8 @@ export default function DALogin() {
               style={{ 
                 ...loginButtonStyle, 
                 backgroundColor: loading ? '#033a2a' : '#065f46',
-                display: 'flex', justifyContent: 'center', alignItems: 'center'
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                marginTop: '10px'
               }} 
               disabled={loading}
             >
@@ -147,7 +127,7 @@ export default function DALogin() {
 
           <div style={footerLinkContainer}>
             <p style={footerText}>
-              Don't have access? <Link href="/register" style={registerLink}>Register Admin</Link>
+              System monitoring is active. Unauthorized access is prohibited.
             </p>
           </div>
         </motion.div>
@@ -173,9 +153,9 @@ const containerStyle = {
   backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000")', 
   backgroundSize: 'cover', backgroundPosition: 'center', fontFamily: 'Inter, sans-serif', position: 'relative'
 };
-const overlayStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 20, 0, 0.75)', zIndex: 0 };
+const overlayStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 20, 0, 0.85)', zIndex: 0 };
 const centerWrapper = { zIndex: 1, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
-const glassCardStyle = { width: '90%', maxWidth: '350px', backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '30px 25px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)', textAlign: 'center' };
+const glassCardStyle = { width: '90%', maxWidth: '350px', backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '35px 25px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)', textAlign: 'center' };
 const logoWrapper = { width: '65px', height: '65px', backgroundColor: '#fff', borderRadius: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 12px' };
 const logoStyle = { width: '45px', height: '45px', objectFit: 'contain' };
 const titleStyle = { color: '#ffffff', fontSize: '20px', fontWeight: '900', margin: '0', letterSpacing: '1px' };
@@ -185,9 +165,7 @@ const inputWrapper = { position: 'relative', display: 'flex', alignItems: 'cente
 const inputIcon = { position: 'absolute', left: '12px', color: '#4ade80' };
 const transparentInputStyle = { width: '100%', backgroundColor: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', padding: '10px 10px 10px 38px', borderRadius: '10px', outline: 'none', fontSize: '14px', boxSizing: 'box-border' };
 const eyeButtonStyle = { position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' };
-const forgotButtonStyle = { background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', fontWeight: '700', fontSize: '10px' };
 const loginButtonStyle = { width: '100%', color: 'white', fontWeight: '800', padding: '14px', borderRadius: '10px', border: 'none', fontSize: '13px', cursor: 'pointer', marginTop: '5px' };
-const footerLinkContainer = { marginTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' };
-const footerText = { color: '#d1d5db', fontSize: '12px', margin: 0 };
-const registerLink = { color: '#4ade80', textDecoration: 'none', fontWeight: '800' };
+const footerLinkContainer = { marginTop: '25px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' };
+const footerText = { color: '#9ca3af', fontSize: '10px', margin: 0, fontStyle: 'italic' };
 const bottomSecureStyle = { marginTop: '20px', color: 'rgba(255, 255, 255, 0.4)', fontSize: '9px', fontWeight: '700', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' };
