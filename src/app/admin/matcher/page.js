@@ -7,7 +7,6 @@ import {
 } from 'firebase/firestore'; 
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion'; 
 import { 
   Database, Users, History, LogOut, 
   UploadCloud, Search, Calendar, CheckCircle2, 
@@ -139,43 +138,42 @@ export default function DAGreenMatcher() {
 
   return (
     <div style={styles.container}>
-      <AnimatePresence>
-        {showLogoutModal && (
-          <div style={styles.modalOverlay}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
-              <div style={styles.modalIconBoxRed}><LogOut size={24}/></div>
-              <h3 style={styles.modalTitle}>Confirm Logout</h3>
-              <p style={styles.modalBody}>Are you sure you want to log out your account?</p>
-              <div style={styles.modalActions}>
-                <button onClick={() => setShowLogoutModal(false)} style={styles.cancelBtn}>Cancel</button>
-                <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
-              </div>
-            </motion.div>
+      {/* Modals - Plain Divs only, no motion */}
+      {showLogoutModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalIconBoxRed}><LogOut size={24}/></div>
+            <h3 style={styles.modalTitle}>Confirm Logout</h3>
+            <p style={styles.modalBody}>Are you sure you want to log out your account?</p>
+            <div style={styles.modalActions}>
+              <button onClick={() => setShowLogoutModal(false)} style={styles.cancelBtn}>Cancel</button>
+              <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {showSuccess && (
-          <div style={styles.modalOverlay}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
-              <div style={styles.modalIconBoxGreen}><CheckCircle2 size={24}/></div>
-              <h3 style={styles.modalTitle}>Sync Complete</h3>
-              <p style={styles.modalBody}>Successfully matched {hasStub.length} farmers and saved to history logs.</p>
-              <button onClick={() => setShowSuccess(false)} style={styles.primaryBtn}>Done</button>
-            </motion.div>
+      {showSuccess && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalIconBoxGreen}><CheckCircle2 size={24}/></div>
+            <h3 style={styles.modalTitle}>Sync Complete</h3>
+            <p style={styles.modalBody}>Successfully matched {hasStub.length} farmers and saved to history logs.</p>
+            <button onClick={() => setShowSuccess(false)} style={styles.primaryBtn}>Done</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {errorMsg && (
-          <div style={styles.modalOverlay}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
-              <div style={styles.modalIconBoxAmber}><AlertCircle size={24}/></div>
-              <h3 style={styles.modalTitle}>System Alert</h3>
-              <p style={styles.modalBody}>{errorMsg}</p>
-              <button onClick={() => setErrorMsg(null)} style={styles.primaryBtn}>Dismiss</button>
-            </motion.div>
+      {errorMsg && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalIconBoxAmber}><AlertCircle size={24}/></div>
+            <h3 style={styles.modalTitle}>System Alert</h3>
+            <p style={styles.modalBody}>{errorMsg}</p>
+            <button onClick={() => setErrorMsg(null)} style={styles.primaryBtn}>Dismiss</button>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       <aside style={styles.sidebar}>
         <div style={styles.logoBox}>
@@ -223,76 +221,74 @@ export default function DAGreenMatcher() {
           )}
         </div>
 
-        <AnimatePresence mode="wait">
-          {!hasData ? (
-            <motion.div key="uploader" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={styles.contentGrid}>
-              <div style={styles.card}>
-                <h3 style={styles.cardTitle}><Database size={18} /> Matching Configuration</h3>
-                <div style={styles.formGroup}>
-                  <div style={styles.field}>
-                    <label style={styles.label}>DISTRIBUTION MONTH</label>
-                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={styles.select}>
-                      {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => <option key={m}>{m}</option>)}
-                    </select>
-                  </div>
-                  <div style={styles.field}>
-                    <label style={styles.label}>TARGET YEAR</label>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={styles.select}>
-                      {years.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                  </div>
-                  
-                  <div 
-                    onClick={() => !isScanning && masterlist.length > 0 && fileInputRef.current.click()} 
-                    style={{...styles.uploadArea, opacity: masterlist.length === 0 ? 0.5 : 1, cursor: masterlist.length === 0 ? 'not-allowed' : 'pointer'}}
-                  >
-                    {isScanning ? <Loader2 size={32} className="spin" color="#81c784" /> : <UploadCloud size={32} color="#81c784" />}
-                    <span style={{fontSize: '14px', fontWeight: '800', color: '#143d16', marginTop: '10px'}}>
-                      {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
-                    </span>
-                    <p style={{fontSize: '11px', color: '#4a614a', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
-                    <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
-                  </div>
+        {!hasData ? (
+          <div style={styles.contentGrid}>
+            <div style={styles.card}>
+              <h3 style={styles.cardTitle}><Database size={18} /> Matching Configuration</h3>
+              <div style={styles.formGroup}>
+                <div style={styles.field}>
+                  <label style={styles.label}>DISTRIBUTION MONTH</label>
+                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={styles.select}>
+                    {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => <option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div style={styles.field}>
+                  <label style={styles.label}>TARGET YEAR</label>
+                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={styles.select}>
+                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                
+                <div 
+                  onClick={() => !isScanning && masterlist.length > 0 && fileInputRef.current.click()} 
+                  style={{...styles.uploadArea, opacity: masterlist.length === 0 ? 0.5 : 1, cursor: masterlist.length === 0 ? 'not-allowed' : 'pointer'}}
+                >
+                  {isScanning ? <Loader2 size={32} className="spin" color="#81c784" /> : <UploadCloud size={32} color="#81c784" />}
+                  <span style={{fontSize: '14px', fontWeight: '800', color: '#143d16', marginTop: '10px'}}>
+                    {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
+                  </span>
+                  <p style={{fontSize: '11px', color: '#4a614a', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
+                  <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
                 </div>
               </div>
+            </div>
 
-              <div style={styles.infoColumn}>
-                <div style={styles.infoCard}>
-                  <h3 style={styles.infoCardTitle}><BarChart3 size={18}/> System Readiness</h3>
-                  <div style={styles.statsRow}>
-                    <div style={styles.statBox}>
-                      <span style={styles.statLabel}>Total Farmers</span>
-                      <span style={styles.statValue}>{masterlist.length}</span>
-                    </div>
-                    <div style={styles.statBox}>
-                      <span style={styles.statLabel}>Database</span>
-                      <span style={{...styles.statValue, color: '#143d16'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
-                    </div>
+            <div style={styles.infoColumn}>
+              <div style={styles.infoCard}>
+                <h3 style={styles.infoCardTitle}><BarChart3 size={18}/> System Readiness</h3>
+                <div style={styles.statsRow}>
+                  <div style={styles.statBox}>
+                    <span style={styles.statLabel}>Total Farmers</span>
+                    <span style={styles.statValue}>{masterlist.length}</span>
                   </div>
-                  
-                  <h3 style={{...styles.infoCardTitle, marginTop: '10px'}}><Clock size={18}/> Recent Activity</h3>
-                  <div style={styles.activityList}>
-                    {lastScans.length > 0 ? lastScans.map(scan => (
-                      <div key={scan.id} style={styles.activityItem}>
-                        <div style={styles.activityDot}></div>
-                        <div style={{flex: 1}}>
-                          <p style={styles.activityText}><strong>{scan.name}</strong> was matched</p>
-                          <p style={styles.activitySub}>{scan.barangay}, {scan.month} {scan.year}</p>
-                        </div>
-                      </div>
-                    )) : <p style={{fontSize: '12px', color: '#4a614a', textAlign: 'center', padding: '10px'}}>No recent activity found.</p>}
+                  <div style={styles.statBox}>
+                    <span style={styles.statLabel}>Database</span>
+                    <span style={{...styles.statValue, color: '#143d16'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
                   </div>
                 </div>
+                
+                <h3 style={{...styles.infoCardTitle, marginTop: '10px'}}><Clock size={18}/> Recent Activity</h3>
+                <div style={styles.activityList}>
+                  {lastScans.length > 0 ? lastScans.map(scan => (
+                    <div key={scan.id} style={styles.activityItem}>
+                      <div style={styles.activityDot}></div>
+                      <div style={{flex: 1}}>
+                        <p style={styles.activityText}><strong>{scan.name}</strong> was matched</p>
+                        <p style={styles.activitySub}>{scan.barangay}, {scan.month} {scan.year}</p>
+                      </div>
+                    </div>
+                  )) : <p style={{fontSize: '12px', color: '#4a614a', textAlign: 'center', padding: '10px'}}>No recent activity found.</p>}
+                </div>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.resultGridThreeCol}>
-              <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#c8e6c9" data={hasStub} type="matched" groupFn={groupData} />
-              <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#991b1b" bg="#fecaca" data={missingStub} type="missing" groupFn={groupData} />
-              <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#92400e" bg="#fde68a" data={alreadyExists} type="duplicate" groupFn={groupData} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        ) : (
+          <div style={styles.resultGridThreeCol}>
+            <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#c8e6c9" data={hasStub} type="matched" groupFn={groupData} />
+            <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#991b1b" bg="#fecaca" data={missingStub} type="missing" groupFn={groupData} />
+            <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#92400e" bg="#fde68a" data={alreadyExists} type="duplicate" groupFn={groupData} />
+          </div>
+        )}
       </main>
 
       <style jsx global>{`
@@ -351,7 +347,6 @@ const EmptyState = ({ msg }) => (
   </div>
 );
 
-// --- Styles (Dimmed Agricultural Theme) ---
 const styles = {
   container: { display: 'flex', height: '100vh', backgroundColor: '#d1dbd1', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
   sidebar: { width: '260px', backgroundColor: '#143d16', borderRight: '1px solid #0d290f', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },

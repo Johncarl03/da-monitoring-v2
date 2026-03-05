@@ -378,7 +378,7 @@ export default function MasterlistPage() {
                 <button onClick={() => setSelectedTownForFA(null)} style={{background:'none', border:'none', cursor:'pointer', color:'#94a3b8'}}><X size={18}/></button>
               </div>
               <div style={{display:'flex', gap:'10px', marginBottom:'20px', marginTop:'20px'}}>
-                  <input value={newFAName} onChange={(e) => setNewFAName(e.target.value)} placeholder="New Association Name..." style={styles.modalInput} />
+                  <input value={newFAName} onChange={(e) => setNewFAName(e.target.value)} placeholder="New FA Name..." style={styles.modalInput} />
                   <button onClick={handleAddFA} style={styles.modalAddBtn}>ADD</button>
               </div>
               <div style={styles.modalList}>
@@ -399,7 +399,7 @@ export default function MasterlistPage() {
           <div style={styles.modalOverlay}>
             <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalContent}>
               <div style={styles.modalIconBoxRed}><Trash2 size={24} /></div>
-              <h3 style={styles.modalTitle}>Remove Association</h3>
+              <h3 style={styles.modalTitle}>Remove FA</h3>
               <p style={styles.modalText}>Delete <strong>{faToDelete.name}</strong>?</p>
               <div style={styles.modalActions}>
                 <button onClick={() => setFaToDelete(null)} style={styles.cancelBtn}>Cancel</button>
