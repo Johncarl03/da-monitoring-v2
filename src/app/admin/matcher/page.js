@@ -2,38 +2,62 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '@/lib/firebase';
 import { 
-  collection, onSnapshot, query, orderBy, addDoc, serverTimestamp, getDocs, where 
+  collection, onSnapshot, query, addDoc, serverTimestamp, 
+  getDocs, where, limit, orderBy, writeBatch, doc 
 } from 'firebase/firestore'; 
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; 
+import { 
+  Database, Users, History, LogOut, 
+  UploadCloud, Search, Calendar, CheckCircle2, 
+  AlertCircle, FolderOpen, Loader2, RefreshCcw, Info, BarChart3, Clock, TrendingUp, X
+} from 'lucide-react';
 
 export default function DAGreenMatcher() {
   const router = useRouter();
   const pathname = usePathname();
+  
+  // --- Data States ---
   const [masterlist, setMasterlist] = useState([]);
+  const [lastScans, setLastScans] = useState([]);
   const [hasStub, setHasStub] = useState([]);
   const [missingStub, setMissingStub] = useState([]);
+  const [alreadyExists, setAlreadyExists] = useState([]); 
   const [isScanning, setIsScanning] = useState(false);
   const [hasData, setHasData] = useState(false);
+  
+  // --- UI States ---
+  const [showLogoutModal, setShowLogoutModal] = useState(false); 
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  
   const fileInputRef = useRef(null);
-
   const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-
-  // --- DYNAMIC YEAR GENERATOR ---
   const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - 1 + i).toString());
 
+  const totalInCurrentView = hasStub.length + missingStub.length + alreadyExists.length;
+  const matchRate = totalInCurrentView > 0 ? Math.round(((hasStub.length + alreadyExists.length) / totalInCurrentView) * 100) : 0;
+
   useEffect(() => {
-    const unsubFarmers = onSnapshot(query(collection(db, "farmers")), (snapshot) => {
-      setMasterlist(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    const unsubFarmers = onSnapshot(collection(db, "farmers"), (snap) => {
+      setMasterlist(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return () => unsubFarmers();
+    const qRecent = query(collection(db, "distribution_history"), orderBy("dateProcessed", "desc"), limit(5));
+    const unsubRecent = onSnapshot(qRecent, (snap) => {
+      setLastScans(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => { unsubFarmers(); unsubRecent(); };
   }, []);
 
   const getCleanWordSet = (str) => {
     if (!str) return new Set();
-    const cleaned = str.toLowerCase().replace(/^\d+[\s\.\-\)]+/, '').replace(/[^\w\s]/gi, '').split(/\s+/).filter(word => word.length > 1);
+    const cleaned = str.toLowerCase()
+      .replace(/^\d+[\s\.\-\)]+/, '') 
+      .replace(/[^\w\s]/gi, '')      
+      .split(/\s+/)
+      .filter(word => word.length > 1);
     return new Set(cleaned);
   };
 
@@ -46,14 +70,13 @@ export default function DAGreenMatcher() {
     return arrA.every(word => setB.has(word)) || arrB.every(word => setA.has(word));
   };
 
-  const handleLogout = async () => {
-    if (confirm("Logout from system?")) { await signOut(auth); router.push('/login'); }
-  };
-
   const handleFileUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
-    
+    if (masterlist.length === 0) {
+      setErrorMsg("Masterlist is still loading or empty. Please wait.");
+      return;
+    }
     setIsScanning(true);
     const uploadedFileNames = files.map(file => file.name.split('.').slice(0, -1).join('.'));
     let detectedFolderName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : "";
@@ -65,30 +88,39 @@ export default function DAGreenMatcher() {
       const existingSnap = await getDocs(q);
       const existingNames = existingSnap.docs.map(doc => doc.data().name);
 
+      const duplicates = masterlist.filter(farmer => 
+        uploadedFileNames.some(fName => isSmartMatch(farmer.name, fName)) &&
+        existingNames.some(extName => isSmartMatch(extName, farmer.name))
+      ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
+
       const matchedFarmers = masterlist.filter(farmer => 
         uploadedFileNames.some(fName => isSmartMatch(farmer.name, fName)) &&
         !existingNames.some(extName => isSmartMatch(extName, farmer.name))
       ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
 
-      const activeLocations = new Set(matchedFarmers.map(f => `${f.municipality}-${f.barangay}`));
-      
+      const activeLocations = new Set([...matchedFarmers, ...duplicates].map(f => `${f.municipality}-${f.barangay}`));
       const missingFarmers = masterlist.filter(f => 
-        !matchedFarmers.some(m => m.id === f.id) && 
+        !uploadedFileNames.some(fName => isSmartMatch(f.name, fName)) && 
         !existingNames.some(extName => isSmartMatch(extName, f.name)) &&
         activeLocations.has(`${f.municipality}-${f.barangay}`)
       ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
 
-      for (const farmer of matchedFarmers) {
-          await addDoc(collection(db, "distribution_history"), {
-            farmerId: farmer.id, name: farmer.name, municipality: farmer.municipality, barangay: farmer.barangay,
-            association: farmer.forcedFA, month: selectedMonth, year: selectedYear, dateProcessed: serverTimestamp(), source: "Auto-Scan"
+      if (matchedFarmers.length > 0) {
+        const batch = writeBatch(db);
+        matchedFarmers.forEach((farmer) => {
+          const newDocRef = doc(collection(db, "distribution_history"));
+          batch.set(newDocRef, {
+            farmerId: farmer.id, name: farmer.name, municipality: farmer.municipality,
+            barangay: farmer.barangay, association: farmer.forcedFA,
+            month: selectedMonth, year: selectedYear, dateProcessed: serverTimestamp(),
+            source: "Auto-Scan"
           });
+        });
+        await batch.commit();
+        setShowSuccess(true);
       }
-      
-      setHasStub(matchedFarmers); 
-      setMissingStub(missingFarmers); 
-      setHasData(true);
-    } catch (err) { console.error(err); } finally { setIsScanning(false); }
+      setHasStub(matchedFarmers); setMissingStub(missingFarmers); setAlreadyExists(duplicates); setHasData(true);
+    } catch (err) { setErrorMsg("An error occurred during scanning."); } finally { setIsScanning(false); }
   };
 
   const groupData = (data) => {
@@ -103,135 +135,288 @@ export default function DAGreenMatcher() {
     return grouped;
   };
 
-  const navLinkStyle = (path) => ({
-    color: pathname === path ? '#1b5e20' : '#81c784',
-    textDecoration: 'none', fontWeight: 'bold', fontSize: '11px', borderBottom: pathname === path ? '2px solid #1b5e20' : 'none', padding: '23px 0', transition: '0.3s'
-  });
+  const handleLogout = () => { signOut(auth).then(() => router.push('/login')); };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ minHeight: '100vh', backgroundColor: '#e8f5e9', color: '#333', fontFamily: 'sans-serif', fontSize: '11px' }}>
-      
+    <div style={styles.container}>
       <AnimatePresence>
-        {isScanning && (
-          <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(232, 245, 233, 0.9)', zIndex: 999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <h2 style={{ color: '#1b5e20', fontWeight: '900' }}>🔍 CHECKING RECORDS...</h2>
-            <p>Filtering out existing entries in history.</p>
+        {showLogoutModal && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
+              <div style={styles.modalIconBoxRed}><LogOut size={24}/></div>
+              <h3 style={styles.modalTitle}>Confirm Logout</h3>
+              <p style={styles.modalBody}>Are you sure you want to log out your account?</p>
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowLogoutModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showSuccess && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
+              <div style={styles.modalIconBoxGreen}><CheckCircle2 size={24}/></div>
+              <h3 style={styles.modalTitle}>Sync Complete</h3>
+              <p style={styles.modalBody}>Successfully matched {hasStub.length} farmers and saved to history logs.</p>
+              <button onClick={() => setShowSuccess(false)} style={styles.primaryBtn}>Done</button>
+            </motion.div>
+          </div>
+        )}
+
+        {errorMsg && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} style={styles.modalCard}>
+              <div style={styles.modalIconBoxAmber}><AlertCircle size={24}/></div>
+              <h3 style={styles.modalTitle}>System Alert</h3>
+              <p style={styles.modalBody}>{errorMsg}</p>
+              <button onClick={() => setErrorMsg(null)} style={styles.primaryBtn}>Dismiss</button>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
 
-      <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 40px', height: '64px', backgroundColor: '#fff', borderBottom: '1px solid #c8e6c9', position: 'sticky', top: 0, zIndex: 1000 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/da-logo.png" alt="DA Logo" style={{ width: '35px' }} />
-          <span style={{ fontWeight: '900', fontSize: '14px', color: '#1b5e20' }}>DA MONITORING</span>
-        </div>
-        <div style={{ display: 'flex', gap: '30px', alignItems: 'center' }}>
-          <a href="/admin/matcher" style={navLinkStyle('/admin/matcher')}>STUB MATCHER</a>
-          <a href="/admin/importer" style={navLinkStyle('/admin/importer')}>MASTERLIST</a>
-          <a href="/admin/history" style={navLinkStyle('/admin/history')}>HISTORY</a>
-          <button onClick={handleLogout} style={{ backgroundColor: '#c62828', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' }}>LOGOUT</button>
-        </div>
-      </nav>
-
-      <div style={{ padding: '25px 40px' }}>
-        {!hasData ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '70vh' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: '900', color: '#1b5e20' }}>STUB MATCHER</h1>
-            <div style={{ marginBottom: '25px', display: 'flex', gap: '15px' }}>
-                <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #c8e6c9' }}>
-                  {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => <option key={m}>{m}</option>)}
-                </select>
-                <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #c8e6c9' }}>
-                  {years.map(y => <option key={y} value={y}>{y}</option>)}
-                </select>
-            </div>
-            <div onClick={() => !isScanning && fileInputRef.current.click()} style={{ width: '100%', maxWidth: '500px', backgroundColor: '#fff', border: '2px dashed #81c784', borderRadius: '25px', padding: '60px', textAlign: 'center', cursor: 'pointer' }}>
-              <input type="file" ref={fileInputRef} webkitdirectory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
-              <div style={{ fontSize: '40px' }}>📂</div>
-              <h3>UPLOAD FOLDER</h3>
-              <p style={{ opacity: 0.5 }}>New scans will be added to {selectedMonth} {selectedYear}</p>
-            </div>
+      <aside style={styles.sidebar}>
+        <div style={styles.logoBox}>
+          <img src="/da-logo.png" alt="DA" style={styles.logoImg} />
+          <div>
+            <h2 style={styles.logoText}>RSBSA</h2>
+            <p style={styles.logoTag}>ORIENTAL MINDORO</p>
           </div>
-        ) : (
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-            
-            <header style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                backgroundColor: '#fff', 
-                padding: '12px 25px', 
-                borderRadius: '12px', 
-                border: '1px solid #c8e6c9', 
-                marginBottom: '20px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div>
-                  <h3 style={{ color: '#1b5e20', margin: 0, fontSize: '15px', fontWeight: '900' }}>NEWLY ADDED</h3>
-                  <span style={{ fontSize: '10px', color: '#666', fontWeight: 'bold' }}>{selectedMonth.toUpperCase()} {selectedYear}</span>
-                </div>
-                <div style={{ height: '30px', width: '1px', backgroundColor: '#eee' }}></div>
-                <div style={{ display: 'flex', gap: '15px', fontSize: '11px' }}>
-                   <span style={{ color: '#2e7d32' }}>Added: <b>{hasStub.length}</b></span>
-                   <span style={{ color: '#c62828' }}>Missing: <b>{missingStub.length}</b></span>
-                </div>
-              </div>
-              <button onClick={() => setHasData(false)} style={{ backgroundColor: '#1b5e20', color: 'white', border: 'none', padding: '8px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '11px' }}>RE-SCAN FOLDER</button>
-            </header>
+        </div>
+        
+        <nav style={styles.nav}>
+          <SidebarBtn icon={<Database size={20}/>} label="Stub Matcher" active={pathname.includes('matcher')} onClick={() => router.push('/admin/matcher')} />
+          <SidebarBtn icon={<Users size={20}/>} label="Masterlist" active={pathname.includes('importer')} onClick={() => router.push('/admin/importer')} />
+          <SidebarBtn icon={<History size={20}/>} label="History Logs" active={pathname.includes('history')} onClick={() => router.push('/admin/history')} />
+        </nav>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-              <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #c8e6c9' }}>
-                <h4 style={{ color: '#1b5e20', marginTop: 0 }}>✅ NEWLY MATCHED</h4>
-                {hasStub.length === 0 ? <p style={{ opacity: 0.5 }}>No new farmers found (already in history or no match).</p> : 
-                  Object.entries(groupData(hasStub)).map(([muni, brgys]) => (
-                    <div key={muni} style={{ marginBottom: '15px' }}>
-                      <p style={{ fontWeight: '900', color: '#1b5e20', borderBottom: '1px solid #f0f0f0', paddingBottom: '3px' }}>📍 {muni}</p>
-                      {Object.entries(brgys).map(([brgy, content]) => (
-                        <div key={brgy} style={{ marginBottom: '10px', paddingLeft: '10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                            <span style={{ fontWeight: 'bold' }}>{brgy}</span>
-                            <span style={{ color: '#2e7d32', backgroundColor: '#e8f5e9', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>FA: {content.fa}</span>
-                          </div>
-                          <div style={{ marginTop: '4px' }}>
-                            {content.farmers.map(f => (
-                              <div key={f.id} style={{ padding: '4px 8px', background: '#f9fdf9', borderLeft: '3px solid #4caf50', marginBottom: '2px', borderRadius: '0 4px 4px 0' }}>{f.name}</div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                }
-              </div>
-
-              <div style={{ backgroundColor: '#fff', borderRadius: '12px', padding: '20px', border: '1px solid #ffcdd2' }}>
-                <h4 style={{ color: '#c62828', marginTop: 0 }}>⚠️ STILL MISSING</h4>
-                {missingStub.length === 0 ? <p style={{ opacity: 0.5 }}>All expected farmers for these locations are now recorded.</p> :
-                  Object.entries(groupData(missingStub)).map(([muni, brgys]) => (
-                    <div key={muni} style={{ marginBottom: '15px' }}>
-                      <p style={{ fontWeight: '900', color: '#c62828', borderBottom: '1px solid #fff0f0', paddingBottom: '3px' }}>📍 {muni}</p>
-                      {Object.entries(brgys).map(([brgy, content]) => (
-                        <div key={brgy} style={{ marginBottom: '10px', paddingLeft: '10px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                            <span style={{ fontWeight: 'bold' }}>{brgy}</span>
-                            <span style={{ color: '#c62828', backgroundColor: '#ffebee', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold' }}>FA: {content.fa}</span>
-                          </div>
-                          <div style={{ marginTop: '4px' }}>
-                            {content.farmers.map(f => (
-                              <div key={f.id} style={{ padding: '4px 8px', background: '#fff9f9', borderLeft: '3px solid #e57373', marginBottom: '2px', borderRadius: '0 4px 4px 0' }}>{f.name}</div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))
-                }
-              </div>
+        {hasData && (
+          <div style={styles.sidebarWidget}>
+            <p style={styles.widgetLabel}><TrendingUp size={14}/> LIVE PROGRESS</p>
+            <div style={styles.progressTrack}>
+              <div style={{...styles.progressFill, width: `${matchRate}%`}}></div>
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '8px'}}>
+              <span style={styles.widgetStat}>{matchRate}% Matched</span>
+              <span style={styles.widgetStat}>{hasStub.length + alreadyExists.length}/{totalInCurrentView}</span>
             </div>
           </div>
         )}
-      </div>
-    </motion.div>
+
+        <button onClick={() => setShowLogoutModal(true)} style={styles.logoutBtn}>
+          <LogOut size={18} /> Logout
+        </button>
+      </aside>
+
+      <main style={styles.main}>
+        <div style={styles.header}>
+          <div style={styles.headerInfo}>
+            <h1 style={styles.title}>Stub Matcher</h1>
+            <p style={styles.subtitle}>Upload distribution folder to sync with archives</p>
+          </div>
+          {hasData && (
+            <button onClick={() => {setHasData(false); setAlreadyExists([]);}} style={styles.reScanBtn}>
+              <RefreshCcw size={16} /> RE-SCAN FOLDER
+            </button>
+          )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {!hasData ? (
+            <motion.div key="uploader" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} style={styles.contentGrid}>
+              <div style={styles.card}>
+                <h3 style={styles.cardTitle}><Database size={18} /> Matching Configuration</h3>
+                <div style={styles.formGroup}>
+                  <div style={styles.field}>
+                    <label style={styles.label}>DISTRIBUTION MONTH</label>
+                    <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={styles.select}>
+                      {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => <option key={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div style={styles.field}>
+                    <label style={styles.label}>TARGET YEAR</label>
+                    <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={styles.select}>
+                      {years.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                  
+                  <div 
+                    onClick={() => !isScanning && masterlist.length > 0 && fileInputRef.current.click()} 
+                    style={{...styles.uploadArea, opacity: masterlist.length === 0 ? 0.5 : 1, cursor: masterlist.length === 0 ? 'not-allowed' : 'pointer'}}
+                  >
+                    {isScanning ? <Loader2 size={32} className="spin" color="#1b5e20" /> : <UploadCloud size={32} color="#1b5e20" />}
+                    <span style={{fontSize: '14px', fontWeight: '800', color: '#1e293b', marginTop: '10px'}}>
+                      {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
+                    </span>
+                    <p style={{fontSize: '11px', color: '#94a3b8', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
+                    <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={styles.infoColumn}>
+                <div style={styles.infoCard}>
+                  <h3 style={styles.infoCardTitle}><BarChart3 size={18}/> System Readiness</h3>
+                  <div style={styles.statsRow}>
+                    <div style={styles.statBox}>
+                      <span style={styles.statLabel}>Total Farmers</span>
+                      <span style={styles.statValue}>{masterlist.length}</span>
+                    </div>
+                    <div style={styles.statBox}>
+                      <span style={styles.statLabel}>Database</span>
+                      <span style={{...styles.statValue, color: '#1b5e20'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
+                    </div>
+                  </div>
+                  
+                  <h3 style={{...styles.infoCardTitle, marginTop: '10px'}}><Clock size={18}/> Recent Activity</h3>
+                  <div style={styles.activityList}>
+                    {lastScans.length > 0 ? lastScans.map(scan => (
+                      <div key={scan.id} style={styles.activityItem}>
+                        <div style={styles.activityDot}></div>
+                        <div style={{flex: 1}}>
+                          <p style={styles.activityText}><strong>{scan.name}</strong> was matched</p>
+                          <p style={styles.activitySub}>{scan.barangay}, {scan.month} {scan.year}</p>
+                        </div>
+                      </div>
+                    )) : <p style={{fontSize: '12px', color: '#94a3b8', textAlign: 'center', padding: '10px'}}>No recent activity found.</p>}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={styles.resultGridThreeCol}>
+              <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#f0fdf4" data={hasStub} type="matched" groupFn={groupData} />
+              <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#ef4444" bg="#fef2f2" data={missingStub} type="missing" groupFn={groupData} />
+              <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#f59e0b" bg="#fffbeb" data={alreadyExists} type="duplicate" groupFn={groupData} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
+    </div>
   );
 }
+
+// --- Sub-Components ---
+const SidebarBtn = ({ icon, label, active, onClick }) => (
+  <button onClick={onClick} style={{
+    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+    backgroundColor: active ? '#f1f8e9' : 'transparent', color: active ? '#1b5e20' : '#81c784',
+    border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', width: '100%', textAlign: 'left', transition: '0.2s'
+  }}>{icon} <span>{label}</span></button>
+);
+
+const ResultCol = ({ title, icon, color, bg, data, type, groupFn }) => (
+  <div style={{...styles.resultColumn, borderColor: color}}>
+    <div style={{...styles.columnHeader, background: bg, borderBottomColor: color}}>
+      <h2 style={{...styles.columnTitle, color: color}}>{icon} {title}</h2>
+    </div>
+    <div style={styles.scrollArea}>
+      {data.length === 0 ? <EmptyState msg="No records." /> : 
+        Object.entries(groupFn(data)).map(([muni, brgys]) => (
+          <div key={muni} style={styles.townGroup}>
+            <h3 style={styles.muniTitle}> {muni}</h3>
+            {Object.entries(brgys).map(([brgy, content]) => (
+              <div key={brgy} style={styles.brgyBox}>
+                <div style={styles.brgyHeader}>
+                  <span style={styles.brgyName}>{brgy}</span>
+                  <span style={{...styles.faBadge, background: bg}}>FA: {content.fa}</span>
+                </div>
+                <div style={styles.farmerList}>
+                  {content.farmers.map(f => (
+                    <div key={f.id} style={{...styles.farmerItem, borderLeftColor: color}}>{f.name}</div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+    </div>
+  </div>
+);
+
+const EmptyState = ({ msg }) => (
+  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+    <Database size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+    <p style={{fontSize: '11px'}}>{msg}</p>
+  </div>
+);
+
+// --- Styles (Agricultural Theme) ---
+const styles = {
+  container: { display: 'flex', height: '100vh', backgroundColor: '#e8f5e9', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
+  sidebar: { width: '260px', backgroundColor: '#fff', borderRight: '1px solid #c8e6c9', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
+  logoImg: { width: '38px', height: '38px' },
+  logoText: { fontSize: '16px', fontWeight: '900', color: '#1b5e20', margin: 0 },
+  logoTag: { fontSize: '9px', fontWeight: '700', color: '#94a3b8', margin: 0 },
+  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
+  
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(232, 245, 233, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
+  modalCard: { background: '#fff', width: '90%', maxWidth: '400px', padding: '30px', borderRadius: '24px', textAlign: 'center', border: '1px solid #c8e6c9' },
+  modalIconBoxRed: { width: '50px', height: '50px', background: '#fff1f2', color: '#e11d48', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxGreen: { width: '50px', height: '50px', background: '#f1f8e9', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxAmber: { width: '50px', height: '50px', background: '#fffbeb', color: '#d97706', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#1b5e20' },
+  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#64748b', lineHeight: '1.6' },
+  modalActions: { display: 'flex', gap: '12px' },
+  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #c8e6c9', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#64748b' },
+  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#e11d48', color: '#fff', fontWeight: '700', cursor: 'pointer' },
+  primaryBtn: { width: '100%', padding: '12px', background: '#1b5e20', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
+
+  sidebarWidget: { padding: '16px', background: '#f1f8e9', borderRadius: '16px', border: '1px solid #c8e6c9', marginBottom: '20px' },
+  widgetLabel: { fontSize: '10px', fontWeight: '800', color: '#1b5e20', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' },
+  progressTrack: { height: '8px', background: '#fff', borderRadius: '4px', overflow: 'hidden' },
+  progressFill: { height: '100%', background: '#1b5e20', borderRadius: '4px', transition: 'width 0.5s ease' },
+  widgetStat: { fontSize: '10px', fontWeight: '700', color: '#1b5e20' },
+
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#fff1f2', color: '#e11d48', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
+  headerInfo: { display: 'flex', flexDirection: 'column' },
+  title: { fontSize: '28px', fontWeight: '900', color: '#1b5e20', margin: 0 },
+  subtitle: { color: '#64748b', fontSize: '14px', margin: 0 },
+  reScanBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#1b5e20', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' },
+  contentGrid: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start' },
+  card: { background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #c8e6c9' },
+  cardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '800', color: '#1b5e20', marginBottom: '20px' },
+  formGroup: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '10px', fontWeight: '800', color: '#94a3b8', letterSpacing: '0.8px' },
+  select: { padding: '10px', background: '#f8fafc', border: '1px solid #c8e6c9', borderRadius: '10px', fontSize: '13px', fontWeight: '600', outline: 'none' },
+  uploadArea: { border: '2px dashed #c8e6c9', borderRadius: '16px', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#f1f8e9' },
+  infoColumn: { display: 'flex', flexDirection: 'column', gap: '24px' },
+  infoCard: { background: '#fff', padding: '24px', borderRadius: '24px', border: '1px solid #c8e6c9' },
+  infoCardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '800', color: '#1b5e20', marginBottom: '16px' },
+  statsRow: { display: 'flex', gap: '16px', marginBottom: '24px' },
+  statBox: { flex: 1, padding: '16px', background: '#f1f8e9', borderRadius: '16px', border: '1px solid #c8e6c9', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center', textAlign: 'center' },
+  statLabel: { fontSize: '9px', fontWeight: '800', color: '#81c784', textTransform: 'uppercase' },
+  statValue: { fontSize: '18px', fontWeight: '900', color: '#1b5e20' },
+  activityList: { display: 'flex', flexDirection: 'column', gap: '12px' },
+  activityItem: { display: 'flex', gap: '12px', alignItems: 'flex-start' },
+  activityDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#81c784', marginTop: '5px' },
+  activityText: { fontSize: '12px', margin: 0, color: '#1b5e20' },
+  activitySub: { fontSize: '10px', color: '#94a3b8', margin: 0 },
+  resultGridThreeCol: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', height: 'calc(100vh - 180px)', minHeight: '400px' },
+  resultColumn: { background: '#fff', borderRadius: '20px', border: '1px solid #c8e6c9', display: 'flex', flexDirection: 'column', overflow: 'hidden' },
+  columnHeader: { padding: '16px 20px', borderBottom: '2px solid' },
+  columnTitle: { margin: 0, fontSize: '13px', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '8px' },
+  scrollArea: { flex: 1, overflowY: 'auto', padding: '16px' },
+  townGroup: { marginBottom: '24px' },
+  muniTitle: { fontSize: '13px', fontWeight: '800', color: '#1b5e20', marginBottom: '12px', borderBottom: '1px solid #f1f8e9', paddingBottom: '4px' },
+  brgyBox: { marginBottom: '16px', paddingLeft: '12px' },
+  brgyHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' },
+  brgyName: { fontSize: '11px', fontWeight: '700', color: '#334155' },
+  faBadge: { fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', color: '#1b5e20' },
+  farmerList: { display: 'flex', flexDirection: 'column', gap: '4px' },
+  farmerItem: { padding: '6px 12px', background: '#f8fafc', fontSize: '11px', borderRadius: '0 6px 6px 0', borderLeft: '3px solid' }
+};

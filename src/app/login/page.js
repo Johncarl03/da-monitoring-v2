@@ -1,152 +1,193 @@
 "use client";
 import React, { useState } from 'react';
 import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, Mail, Lock, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function DALogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorShake, setErrorShake] = useState(false);
+  
+  // Clean English notification state
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
   const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setErrorShake(false);
-    
+    setMsg({ type: '', text: '' }); 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      if (!userCredential.user.emailVerified) {
-        alert("Paki-verify muna ang iyong email.");
-        await signOut(auth);
-        setLoading(false);
-        return;
-      }
-      router.push('/admin/matcher'); 
+      await signInWithEmailAndPassword(auth, email, password);
+      setMsg({ type: 'success', text: 'Access Granted! Redirecting...' });
+      setTimeout(() => router.push('/admin/matcher'), 1500);
     } catch (error) {
-      setErrorShake(true);
-      alert("Invalid Email o Passcode.");
+      setMsg({ type: 'error', text: 'Invalid Email or Passcode.' });
       setLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!email) { alert("Pakisulat muna ang iyong Authorized Email."); return; }
-    if (confirm(`Magpapadala kami ng password reset link sa ${email}.`)) {
-      try {
-        await sendPasswordResetEmail(auth, email);
-        alert("Reset link sent!");
-      } catch (error) { alert("Error: Hindi mahanap ang email."); }
+    if (!email) { 
+      setMsg({ type: 'error', text: 'Please enter your Authorized Email first.' }); 
+      return; 
+    }
+    setMsg({ type: 'success', text: `Sending reset link to ${email}...` });
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setMsg({ type: 'success', text: 'Reset link sent successfully!' });
+    } catch (error) { 
+      setMsg({ type: 'error', text: 'Error: Email not found.' }); 
     }
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={sharedContainerStyle}>
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={errorShake ? { x: [-10, 10, -10, 10, 0] } : { scale: 1, opacity: 1 }}
-        transition={errorShake ? { duration: 0.4 } : { delay: 0.2 }}
-        style={sharedCardStyle}
-      >
-        {/* --- DA LOGO BACK TO 60PX --- */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
-          <motion.img 
-            src="/da-logo.png" 
-            alt="DA Logo"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            style={{ 
-              width: '60px', // Original size restored
-              height: '60px', 
-              objectFit: 'contain' 
-            }}
-          />
-        </div>
+    <div style={containerStyle}>
+      <div style={overlayStyle}></div>
 
-        <div style={{ marginBottom: '25px' }}>
-          <h1 style={sharedTitleStyle}>DA MONITORING</h1>
-          <p style={sharedSubtitleStyle}>ADMIN PORTAL</p>
-        </div>
-
-        <form onSubmit={handleLogin} style={sharedFormStyle}>
-          <motion.input 
-            whileFocus={{ scale: 1.02, backgroundColor: '#ffffff', borderColor: '#1b5e20' }}
-            type="email" placeholder="Authorized Email" style={sharedInputStyle} 
-            value={email} onChange={(e) => setEmail(e.target.value)} required 
-          />
-          <motion.input 
-            whileFocus={{ scale: 1.02, backgroundColor: '#ffffff', borderColor: '#1b5e20' }}
-            type="password" placeholder="Passcode" style={sharedInputStyle} 
-            value={password} onChange={(e) => setPassword(e.target.value)} required 
-          />
-          
-          <div style={{ textAlign: 'right', marginTop: '-5px' }}>
-            <button type="button" onClick={handleForgotPassword} style={forgotButtonStyle}>
-              Forgot Passcode?
-            </button>
+      <div style={centerWrapper}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          style={glassCardStyle}
+        >
+          <div style={logoWrapper}>
+             <img src="/da-logo.png" alt="DA Logo" style={logoStyle} />
           </div>
 
-          <motion.button 
-            whileHover={{ scale: 1.02, backgroundColor: '#2e7d32' }}
-            whileTap={{ scale: 0.98 }}
-            type="submit" 
-            style={{ ...sharedButtonStyle, backgroundColor: loading ? '#003300' : '#1b5e20' }} 
-            disabled={loading}
-          >
-            {loading ? "AUTHENTICATING..." : "LOGIN"}
-          </motion.button>
-        </form>
+          <header style={{ marginBottom: '10px' }}>
+            <h1 style={titleStyle}>ADMIN PORTAL</h1>
+            <p style={subtitleStyle}>LOGIN AS ADMINISTRATOR</p> 
+          </header>
 
-        <div style={sharedFooterLinkStyle}>
-          <p style={sharedSmallTextStyle}>
-            No access yet? <Link href="/register" style={sharedLinkStyle}>Create Account</Link>
-          </p>
+          <AnimatePresence>
+            {msg.text && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0 }}
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  backgroundColor: msg.type === 'error' ? 'rgba(255,0,0,0.2)' : 'rgba(0,255,0,0.1)',
+                  color: msg.type === 'error' ? '#ff8080' : '#4ade80',
+                  border: `1px solid ${msg.type === 'error' ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'}`
+                }}
+              >
+                {msg.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                {msg.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleLogin} style={formStyle}>
+            <div style={inputWrapper}>
+              <Mail size={16} style={inputIcon} />
+              <input 
+                type="email" 
+                placeholder="Authorized Email" 
+                style={transparentInputStyle} 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            
+            <div style={inputWrapper}>
+              <Lock size={16} style={inputIcon} />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Passcode" 
+                style={{ ...transparentInputStyle, paddingRight: '40px' }} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={eyeButtonStyle}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            
+            <div style={{ textAlign: 'right', marginTop: '-10px' }}>
+              <button type="button" onClick={handleForgotPassword} style={forgotButtonStyle}>
+                Forgot Passcode?
+              </button>
+            </div>
+
+            <motion.button 
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="submit" 
+              style={{ 
+                ...loginButtonStyle, 
+                backgroundColor: loading ? '#033a2a' : '#065f46',
+                display: 'flex', justifyContent: 'center', alignItems: 'center'
+              }} 
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : "LOGIN"}
+            </motion.button>
+          </form>
+
+          <div style={footerLinkContainer}>
+            <p style={footerText}>
+              Don't have access? <Link href="/register" style={registerLink}>Register Admin</Link>
+            </p>
+          </div>
+        </motion.div>
+
+        <div style={bottomSecureStyle}>
+          <ShieldCheck size={12} />
+          <span>SECURED GOVERNMENT PORTAL • 2026</span>
         </div>
-      </motion.div>
+      </div>
 
-      <p style={sharedCopyrightStyle}>Official Monitoring System • 2026</p>
-    </motion.div>
+      <style jsx global>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        body { margin: 0; padding: 0; overflow: hidden; }
+      `}</style>
+    </div>
   );
 }
 
-// --- STYLES (Light Green Theme) ---
-const sharedContainerStyle = { 
-  minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', 
-  justifyContent: 'center', backgroundColor: '#e8f5e9', fontFamily: 'sans-serif', margin: 0, padding: '20px' 
+// --- CSS STYLES ---
+const containerStyle = { 
+  height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
+  backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000")', 
+  backgroundSize: 'cover', backgroundPosition: 'center', fontFamily: 'Inter, sans-serif', position: 'relative'
 };
-
-const sharedTitleStyle = { 
-  color: '#1b5e20', fontSize: '28px', fontStyle: 'italic', fontWeight: '900', margin: '0', 
-  textTransform: 'uppercase', letterSpacing: '-1px' 
-};
-
-const sharedSubtitleStyle = { 
-  color: '#4caf50', fontSize: '9px', fontWeight: '900', letterSpacing: '3px', margin: '5px 0 0', textTransform: 'uppercase' 
-};
-
-const sharedCardStyle = { 
-  width: '100%', maxWidth: '380px', backgroundColor: '#ffffff', padding: '35px', 
-  borderRadius: '35px', border: '1px solid #c8e6c9', boxShadow: '0 15px 35px rgba(27, 94, 32, 0.1)', textAlign: 'center' 
-};
-
-const sharedFormStyle = { display: 'flex', flexDirection: 'column', gap: '15px' };
-
-const sharedInputStyle = { 
-  width: '100%', backgroundColor: '#f1f8e9', border: '1px solid #c8e6c9', color: '#333', 
-  padding: '14px', borderRadius: '10px', outline: 'none', fontSize: '13px', boxSizing: 'border-box', transition: '0.3s' 
-};
-
-const sharedButtonStyle = { 
-  width: '100%', color: 'white', fontWeight: '900', padding: '14px', borderRadius: '50px', 
-  border: 'none', textTransform: 'uppercase', fontSize: '10px', letterSpacing: '2px', marginTop: '10px', transition: '0.3s' 
-};
-
-const forgotButtonStyle = { background: 'none', border: 'none', color: '#1b5e20', cursor: 'pointer', fontWeight: 'bold', fontSize: '10px' };
-const sharedFooterLinkStyle = { marginTop: '20px', borderTop: '1px solid #e8f5e9', paddingTop: '15px' };
-const sharedSmallTextStyle = { color: '#666', fontSize: '10px', margin: '0' };
-const sharedLinkStyle = { color: '#1b5e20', textDecoration: 'none', fontWeight: 'bold' };
-const sharedCopyrightStyle = { marginTop: '30px', color: '#81c784', fontSize: '8px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase' };
+const overlayStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 20, 0, 0.75)', zIndex: 0 };
+const centerWrapper = { zIndex: 1, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
+const glassCardStyle = { width: '90%', maxWidth: '350px', backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '30px 25px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)', textAlign: 'center' };
+const logoWrapper = { width: '65px', height: '65px', backgroundColor: '#fff', borderRadius: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 12px' };
+const logoStyle = { width: '45px', height: '45px', objectFit: 'contain' };
+const titleStyle = { color: '#ffffff', fontSize: '20px', fontWeight: '900', margin: '0', letterSpacing: '1px' };
+const subtitleStyle = { color: '#4ade80', fontSize: '9px', fontWeight: '800', letterSpacing: '2px', marginTop: '2px' };
+const formStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
+const inputWrapper = { position: 'relative', display: 'flex', alignItems: 'center' };
+const inputIcon = { position: 'absolute', left: '12px', color: '#4ade80' };
+const transparentInputStyle = { width: '100%', backgroundColor: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', padding: '10px 10px 10px 38px', borderRadius: '10px', outline: 'none', fontSize: '14px', boxSizing: 'box-border' };
+const eyeButtonStyle = { position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' };
+const forgotButtonStyle = { background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer', fontWeight: '700', fontSize: '10px' };
+const loginButtonStyle = { width: '100%', color: 'white', fontWeight: '800', padding: '14px', borderRadius: '10px', border: 'none', fontSize: '13px', cursor: 'pointer', marginTop: '5px' };
+const footerLinkContainer = { marginTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' };
+const footerText = { color: '#d1d5db', fontSize: '12px', margin: 0 };
+const registerLink = { color: '#4ade80', textDecoration: 'none', fontWeight: '800' };
+const bottomSecureStyle = { marginTop: '20px', color: 'rgba(255, 255, 255, 0.4)', fontSize: '9px', fontWeight: '700', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' };

@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "DA Monitoring System",
+  title: "RSBSA Monitoring System",
   description: "Oriental Mindoro Database",
 };
 

@@ -1,240 +1,201 @@
 "use client";
 import React, { useState } from 'react';
 import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Eye, EyeOff, Mail, Lock, Loader2, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export default function DARegister() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  const [msg, setMsg] = useState({ type: '', text: '' });
+
   const router = useRouter();
 
   const handleRegister = async (e) => {
     e.preventDefault();
-    
+    setMsg({ type: '', text: '' });
+
     if (password !== confirmPassword) {
-      alert("Hindi magkatugma ang passcode.");
+      setMsg({ type: 'error', text: 'Passcodes do not match.' });
       return;
     }
 
     setLoading(true);
-
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
-      await sendEmailVerification(user);
-      
-      alert("Account created! Nagpadala kami ng verification link sa iyong email. Paki-verify muna bago mag-login.");
-
-      await signOut(auth);
-      router.push('/login');
+      await createUserWithEmailAndPassword(auth, email, password);
+      setMsg({ type: 'success', text: 'Account Created! Redirecting to Login...' });
+      setTimeout(() => router.push('/'), 2000);
     } catch (error) {
-      if (error.code === 'auth/email-already-in-use') {
-        alert("Ang email na ito ay may account na.");
-      } else {
-        alert("Error: " + error.message);
-      }
-    } finally {
       setLoading(false);
+      if (error.code === 'auth/email-already-in-use') {
+        setMsg({ type: 'error', text: 'This email is already registered.' });
+      } else if (error.code === 'auth/weak-password') {
+        setMsg({ type: 'error', text: 'Password is too weak (min. 6 characters).' });
+      } else {
+        setMsg({ type: 'error', text: 'Error: ' + error.message });
+      }
     }
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={sharedContainerStyle}
-    >
-      <motion.div 
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        style={sharedCardStyle}
-      >
-        {/* --- DA LOGO INSIDE THE CARD (60PX) --- */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
-          <motion.img 
-            src="/da-logo.png" 
-            alt="DA Logo"
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            style={{ 
-              width: '60px', 
-              height: '60px', 
-              objectFit: 'contain' 
-            }}
-          />
+    <div style={containerStyle}>
+      <div style={overlayStyle}></div>
+
+      <div style={centerWrapper}>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          style={glassCardStyle}
+        >
+          <div style={logoWrapper}>
+             <img src="/da-logo.png" alt="DA Logo" style={logoStyle} />
+          </div>
+
+          <header style={{ marginBottom: '10px' }}>
+            <h1 style={titleStyle}>ADMIN PORTAL</h1>
+            <p style={subtitleStyle}>REGISTER NEW ADMINISTRATOR</p> 
+          </header>
+
+          <AnimatePresence>
+            {msg.text && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0 }}
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontSize: '11px',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  backgroundColor: msg.type === 'error' ? 'rgba(255,0,0,0.2)' : 'rgba(0,255,0,0.1)',
+                  color: msg.type === 'error' ? '#ff8080' : '#4ade80',
+                  border: `1px solid ${msg.type === 'error' ? 'rgba(255,0,0,0.3)' : 'rgba(0,255,0,0.3)'}`
+                }}
+              >
+                {msg.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                {msg.text}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <form onSubmit={handleRegister} style={formStyle}>
+            <div style={inputWrapper}>
+              <Mail size={16} style={inputIcon} />
+              <input 
+                type="email" 
+                placeholder="Authorized Email Address" 
+                style={transparentInputStyle} 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                required 
+              />
+            </div>
+            
+            <div style={inputWrapper}>
+              <Lock size={16} style={inputIcon} />
+              <input 
+                type={showPassword ? "text" : "password"} 
+                placeholder="Create Passcode" 
+                style={{ ...transparentInputStyle, paddingRight: '40px' }} 
+                value={password} 
+                onChange={(e) => setPassword(e.target.value)} 
+                required 
+                minLength={6}
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={eyeButtonStyle}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            <div style={inputWrapper}>
+              <Lock size={16} style={inputIcon} />
+              <input 
+                type={showConfirmPassword ? "text" : "password"} 
+                placeholder="Confirm Passcode" 
+                style={{ ...transparentInputStyle, paddingRight: '40px' }} 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                required 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={eyeButtonStyle}
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            <motion.button 
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              type="submit" 
+              style={{ 
+                ...loginButtonStyle, 
+                backgroundColor: loading ? '#033a2a' : '#065f46',
+                display: 'flex', justifyContent: 'center', alignItems: 'center'
+              }} 
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : "REGISTER ACCOUNT"}
+            </motion.button>
+          </form>
+
+          <div style={footerLinkContainer}>
+            <p style={footerText}>
+              Already have access? <Link href="/" style={registerLink}>Login Here</Link>
+            </p>
+          </div>
+        </motion.div>
+
+        <div style={bottomSecureStyle}>
+          <ShieldCheck size={12} />
+          <span>SECURED GOVERNMENT PORTAL • 2026</span>
         </div>
+      </div>
 
-        <div style={{ marginBottom: '25px' }}>
-          <h1 style={sharedTitleStyle}>DA MONITORING</h1>
-          <p style={sharedSubtitleStyle}>CREATE ADMIN ACCOUNT</p>
-        </div>
-
-        <form onSubmit={handleRegister} style={sharedFormStyle}>
-          <motion.input 
-            whileFocus={{ scale: 1.02, backgroundColor: '#ffffff', borderColor: '#1b5e20' }}
-            type="email" 
-            placeholder="Authorized Email" 
-            style={sharedInputStyle} 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-          />
-          <motion.input 
-            whileFocus={{ scale: 1.02, backgroundColor: '#ffffff', borderColor: '#1b5e20' }}
-            type="password" 
-            placeholder="Create Passcode" 
-            style={sharedInputStyle} 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-            minLength={6}
-          />
-          <motion.input 
-            whileFocus={{ scale: 1.02, backgroundColor: '#ffffff', borderColor: '#1b5e20' }}
-            type="password" 
-            placeholder="Confirm Passcode" 
-            style={sharedInputStyle} 
-            value={confirmPassword} 
-            onChange={(e) => setConfirmPassword(e.target.value)} 
-            required 
-          />
-          
-          <motion.button 
-            whileHover={{ scale: 1.02, backgroundColor: '#2e7d32' }}
-            whileTap={{ scale: 0.98 }}
-            type="submit" 
-            style={{
-              ...sharedButtonStyle,
-              backgroundColor: loading ? '#003300' : '#1b5e20',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }} 
-            disabled={loading}
-          >
-            {loading ? "CREATING ACCOUNT..." : "REGISTER ACCOUNT"}
-          </motion.button>
-        </form>
-
-        <div style={sharedFooterLinkStyle}>
-          <p style={sharedSmallTextStyle}>
-            Already have an account? <Link href="/login" style={sharedLinkStyle}>Login Here</Link>
-          </p>
-        </div>
-      </motion.div>
-
-      <motion.p 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        style={sharedCopyrightStyle}
-      >
-        Official Monitoring System • 2026
-      </motion.p>
-    </motion.div>
+      <style jsx global>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        body { margin: 0; padding: 0; overflow: hidden; }
+      `}</style>
+    </div>
   );
 }
 
-// --- UPDATED LIGHT SAGE THEME (MATCHING LOGIN) ---
-const sharedContainerStyle = { 
-  minHeight: '100vh', 
-  display: 'flex', 
-  flexDirection: 'column', 
-  alignItems: 'center', 
-  justifyContent: 'center', 
-  backgroundColor: '#e8f5e9', 
-  fontFamily: 'sans-serif', 
-  margin: 0, 
-  padding: '20px' 
-};
-
-const sharedTitleStyle = { 
-  color: '#1b5e20', 
-  fontSize: '28px', 
-  fontStyle: 'italic', 
-  fontWeight: '900', 
-  margin: '0', 
-  textTransform: 'uppercase', 
-  letterSpacing: '-1px' 
-};
-
-const sharedSubtitleStyle = { 
-  color: '#4caf50', 
-  fontSize: '9px', 
-  fontWeight: '900', 
-  letterSpacing: '3px', 
-  margin: '5px 0 0', 
-  textTransform: 'uppercase' 
-};
-
-const sharedCardStyle = { 
-  width: '100%', 
-  maxWidth: '380px', 
-  backgroundColor: '#ffffff', 
-  padding: '35px', 
-  borderRadius: '35px', 
-  border: '1px solid #c8e6c9', 
-  boxShadow: '0 15px 35px rgba(27, 94, 32, 0.1)', 
-  textAlign: 'center' 
-};
-
-const sharedFormStyle = { display: 'flex', flexDirection: 'column', gap: '15px' };
-
-const sharedInputStyle = { 
-  width: '100%', 
-  backgroundColor: '#f1f8e9', 
-  border: '1px solid #c8e6c9', 
-  color: '#333', 
-  padding: '14px', 
-  borderRadius: '10px', 
-  outline: 'none', 
-  fontSize: '13px', 
-  boxSizing: 'border-box', 
-  transition: '0.3s' 
-};
-
-const sharedButtonStyle = { 
-  width: '100%', 
-  color: 'white', 
-  fontWeight: '900', 
-  padding: '14px', 
-  borderRadius: '50px', 
-  border: 'none', 
-  textTransform: 'uppercase', 
-  fontSize: '10px', 
-  letterSpacing: '2px', 
-  marginTop: '10px', 
-  transition: '0.3s' 
-};
-
-const sharedFooterLinkStyle = { 
-  marginTop: '20px', 
-  borderTop: '1px solid #e8f5e9', 
-  paddingTop: '15px' 
-};
-
-const sharedSmallTextStyle = { 
-  color: '#666', 
-  fontSize: '10px', 
-  margin: '0' 
-};
-
-const sharedLinkStyle = { 
-  color: '#1b5e20', 
-  textDecoration: 'none', 
-  fontWeight: 'bold' 
-};
-
-const sharedCopyrightStyle = { 
-  marginTop: '30px', 
-  color: '#81c784', 
-  fontSize: '8px', 
-  fontWeight: 'bold', 
-  letterSpacing: '2px', 
-  textTransform: 'uppercase' 
-};
+// --- CSS STYLES (UNCHANGED) ---
+const containerStyle = { height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', backgroundImage: 'url("https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000")', backgroundSize: 'cover', backgroundPosition: 'center', fontFamily: 'Inter, sans-serif', position: 'relative' };
+const overlayStyle = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0, 20, 0, 0.75)', zIndex: 0 };
+const centerWrapper = { zIndex: 1, height: '100%', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' };
+const glassCardStyle = { width: '90%', maxWidth: '350px', backgroundColor: 'rgba(255, 255, 255, 0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', padding: '30px 25px', borderRadius: '30px', border: '1px solid rgba(255, 255, 255, 0.15)', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)', textAlign: 'center' };
+const logoWrapper = { width: '65px', height: '65px', backgroundColor: '#fff', borderRadius: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '0 auto 12px' };
+const logoStyle = { width: '45px', height: '45px', objectFit: 'contain' };
+const titleStyle = { color: '#ffffff', fontSize: '20px', fontWeight: '900', margin: '0', letterSpacing: '1px' };
+const subtitleStyle = { color: '#4ade80', fontSize: '9px', fontWeight: '800', letterSpacing: '2px', marginTop: '2px' };
+const formStyle = { display: 'flex', flexDirection: 'column', gap: '12px' };
+const inputWrapper = { position: 'relative', display: 'flex', alignItems: 'center' };
+const inputIcon = { position: 'absolute', left: '12px', color: '#4ade80' };
+const transparentInputStyle = { width: '100%', backgroundColor: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255, 255, 255, 0.1)', color: '#ffffff', padding: '10px 10px 10px 38px', borderRadius: '10px', outline: 'none', fontSize: '14px', boxSizing: 'border-box' };
+const eyeButtonStyle = { position: 'absolute', right: '12px', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' };
+const loginButtonStyle = { width: '100%', color: 'white', fontWeight: '800', padding: '14px', borderRadius: '10px', border: 'none', fontSize: '13px', cursor: 'pointer', marginTop: '5px' };
+const footerLinkContainer = { marginTop: '18px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '15px' };
+const footerText = { color: '#d1d5db', fontSize: '12px', margin: 0 };
+const registerLink = { color: '#4ade80', textDecoration: 'none', fontWeight: '800' };
+const bottomSecureStyle = { marginTop: '20px', color: 'rgba(255, 255, 255, 0.4)', fontSize: '9px', fontWeight: '700', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '6px' };

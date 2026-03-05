@@ -5,6 +5,10 @@ import { collection, query, onSnapshot, where, deleteDoc, doc, orderBy } from 'f
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  History, Users, Database, LogOut, Search, 
+  Calendar, Trash2, AlertCircle, CheckCircle2, Filter
+} from 'lucide-react';
 
 export default function HistoryPage() {
   const router = useRouter();
@@ -14,7 +18,6 @@ export default function HistoryPage() {
   const [masterlist, setMasterlist] = useState([]); 
   const [searchTerm, setSearchTerm] = useState(''); 
   
-  // --- DYNAMIC DATE INITIALIZATION ---
   const currentYear = new Date().getFullYear();
   const currentMonthName = new Date().toLocaleString('default', { month: 'long' });
   
@@ -22,7 +25,10 @@ export default function HistoryPage() {
   const [year, setYear] = useState(currentYear.toString());
   const [viewMode, setViewMode] = useState('submitted');
 
-  // Gagawa ng listahan ng taon (Last year, Current, at next 3 years)
+  const [deleteId, setDeleteId] = useState(null);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const yearsOptions = Array.from({ length: 5 }, (_, i) => (currentYear - 1 + i).toString());
 
   useEffect(() => {
@@ -60,13 +66,26 @@ export default function HistoryPage() {
     return () => unsub();
   }, [month, year]);
 
+  const confirmDelete = async () => {
+    if (deleteId) {
+      await deleteDoc(doc(db, "distribution_history", deleteId));
+      setDeleteId(null);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+    }
+  };
+
+  const handleLogout = () => {
+    signOut(auth).then(() => router.push('/login'));
+  };
+
   const submittedNames = new Set(history.map(item => item.name?.toLowerCase().trim()));
   const missingRecords = history.length > 0 
     ? masterlist.filter(farmer => !submittedNames.has(farmer.name?.toLowerCase().trim()))
     : [];
 
   const filterBySearch = (dataList) => {
-    if (!searchTerm.trim()) return []; 
+    if (!searchTerm.trim()) return [];
     const s = searchTerm.toLowerCase();
     return dataList.filter(item => 
       item.municipality?.toLowerCase().includes(s) ||
@@ -77,9 +96,6 @@ export default function HistoryPage() {
       const aMuni = a.municipality?.toLowerCase() || "";
       const bMuni = b.municipality?.toLowerCase() || "";
       if (aMuni !== bMuni) return aMuni.localeCompare(bMuni);
-      const aBrgy = a.barangay?.toLowerCase() || "";
-      const bBrgy = b.barangay?.toLowerCase() || "";
-      if (aBrgy !== bBrgy) return aBrgy.localeCompare(bBrgy);
       return (a.name || "").localeCompare(b.name || "");
     });
   };
@@ -88,193 +104,218 @@ export default function HistoryPage() {
   const searchedMissing = filterBySearch(missingRecords);
   const filteredDisplay = viewMode === 'submitted' ? searchedSubmitted : searchedMissing;
 
-  const handleLogout = async () => {
-    if (confirm("Logout from system?")) {
-      await signOut(auth);
-      router.push('/login');
-    }
-  };
-
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      style={containerStyle}
-    >
-      <nav style={navStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img src="/da-logo.png" alt="DA Logo" style={{ width: '35px', height: '35px', objectFit: 'contain' }} />
-          <span style={{ fontWeight: '900', letterSpacing: '1.5px', fontSize: '14px', color: '#1b5e20' }}>DA MONITORING</span>
+    <div style={styles.container}>
+      <aside style={styles.sidebar}>
+        <div style={styles.logoBox}>
+          <img src="/da-logo.png" alt="DA" style={styles.logoImg} />
+          <div>
+            <h2 style={styles.logoText}>RSBSA</h2>
+            <p style={styles.logoTag}>ORIENTAL MINDORO</p>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '30px', alignItems: 'center', height: '100%' }}>
-          <a href="/admin/matcher" style={navLinkStyle(pathname, '/admin/matcher')}>STUB MATCHER</a>
-          <a href="/admin/importer" style={navLinkStyle(pathname, '/admin/importer')}>MASTERLIST</a>
-          <a href="/admin/history" style={navLinkStyle(pathname, '/admin/history')}>HISTORY</a>
-          <button onClick={handleLogout} style={logoutBtn}>LOGOUT</button>
-        </div>
-      </nav>
+        <nav style={styles.nav}>
+          <SidebarBtn icon={<Database size={20}/>} label="Stub Matcher" active={pathname.includes('matcher')} onClick={() => router.push('/admin/matcher')} />
+          <SidebarBtn icon={<Users size={20}/>} label="Masterlist" active={pathname.includes('importer')} onClick={() => router.push('/admin/importer')} />
+          <SidebarBtn icon={<History size={20}/>} label="History Logs" active={pathname.includes('history')} onClick={() => router.push('/admin/history')} />
+        </nav>
+        <button onClick={() => setIsLogoutModalOpen(true)} style={styles.logoutBtn}>
+          <LogOut size={18} /> Logout
+        </button>
+      </aside>
 
-      <div style={{ padding: '40px' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: '900', fontStyle: 'italic', margin: 0, letterSpacing: '-1px', color: '#1b5e20' }}>HISTORY LOGS</h1>
+      <main style={styles.main}>
+        <div style={styles.header}>
+          <div>
+            <h1 style={styles.title}>Distribution History</h1>
+            <p style={styles.subtitle}>Track matched stubs and identify missing records</p>
+          </div>
           
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <span style={{ position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)', opacity: 0.6, fontSize: '14px', color: '#1b5e20', pointerEvents: 'none', zIndex: 1 }}>🔍</span>
-            <motion.input 
-              whileFocus={{ scale: 1.02, boxShadow: "0 0 15px rgba(27, 94, 32, 0.1)", borderColor: "#1b5e20" }}
-              type="text" 
-              placeholder="Search Municipality, Barangay, Name, or Fa..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-              style={searchInputStyle} 
+          <div style={styles.searchBox}>
+            <Search size={18} color="#1b5e20" style={{ position: 'absolute', left: '15px', opacity: 0.6 }} />
+            <input 
+              placeholder="Type name or location..."
+              style={styles.searchInput}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-        </header>
-
-        <div style={filterBar}>
-          <div style={filterGroup}>
-            <label style={labelStyle}>MONTH</label>
-            <select value={month} onChange={(e) => setMonth(e.target.value)} style={selectStyle}>
-              {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
-          </div>
-          <div style={filterGroup}>
-            <label style={labelStyle}>YEAR</label>
-            <select value={year} onChange={(e) => setYear(e.target.value)} style={selectStyle}>
-              {yearsOptions.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
-        <div style={{ height: '50px' }}>
-          <AnimatePresence mode="wait">
+        <div style={styles.filterBar}>
+          <div style={styles.filterGroup}>
+             <div style={styles.selectWrapper}>
+                <Calendar size={14} style={{marginRight: '8px', color: '#1b5e20'}} />
+                <select value={month} onChange={(e) => setMonth(e.target.value)} style={styles.select}>
+                  {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+             </div>
+             <div style={styles.selectWrapper}>
+                <Filter size={14} style={{marginRight: '8px', color: '#1b5e20'}} />
+                <select value={year} onChange={(e) => setYear(e.target.value)} style={styles.select}>
+                  {yearsOptions.map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+             </div>
+          </div>
+
+          <AnimatePresence>
             {searchTerm.trim() && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                style={{ display: 'flex', gap: '12px', marginBottom: '25px', marginTop: '10px' }}
-              >
-                <button onClick={() => setViewMode('submitted')} style={viewMode === 'submitted' ? activeTab : inactiveTab}>
-                  MATCHED ({searchedSubmitted.length})
+              <motion.div initial={{opacity:0, x:20}} animate={{opacity:1, x:0}} style={styles.tabGroup}>
+                <button onClick={() => setViewMode('submitted')} style={viewMode === 'submitted' ? styles.activeTab : styles.inactiveTab}>
+                  <CheckCircle2 size={14} /> MATCHED ({searchedSubmitted.length})
                 </button>
-                <button onClick={() => setViewMode('missing')} style={viewMode === 'missing' ? activeTabRed : inactiveTab}>
-                  MISSING ({searchedMissing.length})
+                <button onClick={() => setViewMode('missing')} style={viewMode === 'missing' ? styles.activeTabRed : styles.inactiveTab}>
+                  <AlertCircle size={14} /> MISSING ({searchedMissing.length})
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        <motion.div layout style={tableWrapper}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-            <thead style={{ background: '#f9fdf9' }}>
+        <div style={styles.tableCard}>
+          <table style={styles.table}>
+            <thead>
               <tr>
-                <th style={thStyle}>FARMER NAME</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>FA</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>MUNICIPALITY</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>BARANGAY</th>
-                <th style={{ ...thStyle, textAlign: 'center' }}>ACTION</th>
+                <th style={styles.th}>FARMER NAME</th>
+                <th style={{...styles.th, textAlign: 'center'}}>FA</th>
+                <th style={{...styles.th, textAlign: 'center'}}>MUNICIPALITY</th>
+                <th style={styles.th}>BARANGAY</th>
+                <th style={{...styles.th, textAlign: 'center', width: '150px'}}>STATUS</th>
               </tr>
             </thead>
             <tbody>
-              <AnimatePresence mode="popLayout">
-                {filteredDisplay.length > 0 ? filteredDisplay.map((item) => (
-                  <motion.tr 
-                    layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    key={item.id} 
-                    style={trStyle}
-                    whileHover={{ backgroundColor: '#f1f8e9' }}
-                  >
-                    <td style={{ padding: '16px 20px', fontWeight: '900', textTransform: 'uppercase', color: '#1b5e20' }}>{item.name}</td>
-                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      <span style={faBadgeStyle}>{item.association || item.fa || '---'}</span>
-                    </td>
-                    <td style={{ padding: '16px 20px', opacity: 0.8, textAlign: 'center', color: '#333' }}>{item.municipality}</td>
-                    <td style={{ padding: '16px 20px', opacity: 0.8, textAlign: 'center', color: '#333' }}>{item.barangay}</td>
-                    <td style={{ padding: '16px 20px', textAlign: 'center' }}>
-                      {viewMode === 'submitted' ? (
-                        <button 
-                          onClick={() => { if(confirm("Delete record?")) deleteDoc(doc(db, "distribution_history", item.id)) }} 
-                          style={deleteBtn}
-                        >DELETE</button>
-                      ) : (
-                        <span style={{ color: '#c62828', fontWeight: 'bold', fontSize: '10px' }}>❌ MISSING</span>
-                      )}
-                    </td>
-                  </motion.tr>
-                )) : (
-                  <motion.tr initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                    <td colSpan="5" style={emptyState}>
-                      {searchTerm.trim() 
-                             ? "No records found." 
-                             : "Search by Name, Municipality, or Barangay to display results."}
-                    </td>
-                  </motion.tr>
-                )}
-              </AnimatePresence>
+              {filteredDisplay.length > 0 ? filteredDisplay.map((item) => (
+                <tr key={item.id} style={styles.tr}>
+                  <td style={styles.tdName}>{item.name}</td>
+                  <td style={styles.tdCenter}>
+                    <span style={styles.faBadge}>{item.association || item.fa || '---'}</span>
+                  </td>
+                  <td style={{...styles.tdCenter, color: '#64748b', fontSize: '13px'}}>{item.municipality}</td>
+                  <td style={styles.tdDim}>{item.barangay}</td>
+                  <td style={styles.tdCenter}>
+                    {viewMode === 'submitted' ? (
+                      <button 
+                        onClick={() => setDeleteId(item.id)} 
+                        className="delete-hover-btn" 
+                        style={styles.delBtn}
+                      >
+                        <Trash2 size={14} /> DELETE
+                      </button>
+                    ) : (
+                      <span style={styles.missingLabel}>UNCLAIMED</span>
+                    )}
+                  </td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan="5" style={styles.emptyState}>
+                    <Search size={40} color="#c8e6c9" style={{marginBottom: '10px'}} /><br/>
+                    {searchTerm.trim() ? "No results found." : "Start typing to view records."}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </motion.div>
-      </div>
-    </motion.div>
+        </div>
+      </main>
+
+      {/* MODALS REMAIN THE SAME */}
+      <AnimatePresence>
+        {isLogoutModalOpen && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalContent}>
+              <div style={styles.modalIconBoxRed}><LogOut size={24} /></div>
+              <h3 style={styles.modalTitle}>Confirm Logout</h3>
+              <p style={styles.modalText}>Are you sure you want to logout your account?</p>
+              <div style={styles.modalActions}>
+                <button onClick={() => setIsLogoutModalOpen(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+        {deleteId && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalContent}>
+              <div style={styles.modalIconBoxRed}><Trash2 size={24} /></div>
+              <h3 style={styles.modalTitle}>Delete Record</h3>
+              <p style={styles.modalText}>Are you sure you want to delete this historical record?</p>
+              <div style={styles.modalActions}>
+                <button onClick={() => setDeleteId(null)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={confirmDelete} style={styles.confirmLogoutBtn}>Delete</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        .delete-hover-btn { transition: all 0.2s ease; }
+        .delete-hover-btn:hover { color: #e11d48 !important; transform: scale(1.05); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
+    </div>
   );
 }
 
-// THEMED STYLES (Keep existing)
-const containerStyle = { minHeight: '100vh', backgroundColor: '#e8f5e9', color: '#333', fontFamily: 'sans-serif' };
-const navStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 40px', height: '64px', backgroundColor: '#ffffff', borderBottom: '1px solid #c8e6c9', position: 'sticky', top: 0, zIndex: 1000 };
-const logoutBtn = { backgroundColor: '#c62828', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer', marginLeft: '10px' };
+const SidebarBtn = ({ icon, label, active, onClick }) => (
+  <button onClick={onClick} style={{
+    display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
+    backgroundColor: active ? '#f1f8e9' : 'transparent', color: active ? '#1b5e20' : '#81c784',
+    border: 'none', borderRadius: '12px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', width: '100%', textAlign: 'left', transition: '0.2s'
+  }}>{icon} <span>{label}</span></button>
+);
 
-const searchInputStyle = { 
-  padding: '12px 20px 12px 45px',
-  width: '400px',
-  borderRadius: '50px', 
-  border: '1px solid #c8e6c9', 
-  backgroundColor: '#ffffff', 
-  color: '#333', 
-  outline: 'none', 
-  fontSize: '13px',
-  transition: '0.3s'
+const styles = {
+  container: { display: 'flex', height: '100vh', backgroundColor: '#e8f5e9', fontFamily: "'Inter', sans-serif" },
+  sidebar: { width: '260px', backgroundColor: '#fff', borderRight: '1px solid #c8e6c9', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
+  logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
+  logoImg: { width: '38px', height: '38px' },
+  logoText: { fontSize: '16px', fontWeight: '900', color: '#1b5e20', margin: 0 },
+  logoTag: { fontSize: '9px', fontWeight: '700', color: '#94a3b8', margin: 0 },
+  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
+  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#fff1f2', color: '#e11d48', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
+  title: { fontSize: '28px', fontWeight: '900', color: '#1b5e20', margin: 0 },
+  subtitle: { color: '#64748b', fontSize: '14px', margin: 0 },
+  
+  // ETO YUNG BINAGO PARA MAG-MATCH SA MASTERLIST
+  searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
+  searchInput: { padding: '12px 20px 12px 45px', borderRadius: '50px', border: '1px solid #c8e6c9', width: '300px', fontSize: '14px', outline: 'none' },
+
+  filterBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
+  filterGroup: { display: 'flex', gap: '12px' },
+  selectWrapper: { display: 'flex', alignItems: 'center', background: '#fff', padding: '6px 14px', borderRadius: '12px', border: '1px solid #c8e6c9' },
+  select: { border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontWeight: '700', color: '#1e293b', cursor: 'pointer' },
+  tabGroup: { display: 'flex', gap: '8px', background: 'rgba(255,255,255,0.5)', padding: '4px', borderRadius: '14px' },
+  activeTab: { display: 'flex', alignItems: 'center', gap: '6px', background: '#1b5e20', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+  activeTabRed: { display: 'flex', alignItems: 'center', gap: '6px', background: '#e11d48', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
+  inactiveTab: { display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#81c784', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
+  tableCard: { background: '#fff', borderRadius: '24px', border: '1px solid #c8e6c9', overflow: 'hidden' },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  th: { textAlign: 'left', padding: '18px 24px', background: '#f1f8e9', fontSize: '11px', fontWeight: '800', color: '#1b5e20', borderBottom: '1px solid #c8e6c9' },
+  tr: { borderBottom: '1px solid #f1f8e9' },
+  tdName: { padding: '18px 24px', fontWeight: '700', color: '#1e293b', fontSize: '13px' },
+  tdDim: { padding: '18px 24px', color: '#64748b', fontSize: '13px' },
+  tdCenter: { padding: '18px 24px', textAlign: 'center', verticalAlign: 'middle' },
+  faBadge: { background: '#f1f8e9', color: '#166534', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', display: 'inline-block', border: '1px solid #c8e6c9' },
+  delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#cbd5e1', cursor: 'pointer', fontWeight: '800', fontSize: '11px', padding: '6px 12px' },
+  missingLabel: { display: 'inline-flex', alignItems: 'center', color: '#e11d48', fontWeight: '800', fontSize: '11px', background: '#fff1f2', padding: '6px 12px', borderRadius: '8px' },
+  emptyState: { padding: '100px', textAlign: 'center', color: '#c8e6c9' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(232, 245, 233, 0.7)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modalContent: { background: '#fff', padding: '30px', borderRadius: '24px', width: '90%', maxWidth: '400px', textAlign: 'center', border: '1px solid #c8e6c9' },
+  modalIconBoxRed: { width: '50px', height: '50px', background: '#fff1f2', color: '#e11d48', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalTitle: { fontSize: '18px', fontWeight: '800', color: '#1e293b', margin: '0 0 10px 0' },
+  modalText: { fontSize: '14px', color: '#64748b', margin: '0 0 25px 0', lineHeight: '1.6' },
+  modalActions: { display: 'flex', gap: '10px' },
+  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #c8e6c9', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#64748b' },
+  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#e11d48', color: '#fff', fontWeight: '700', cursor: 'pointer' }
 };
-
-const faBadgeStyle = {
-  backgroundColor: '#c8e6c9',
-  color: '#1b5e20',
-  padding: '4px 10px',
-  borderRadius: '12px',
-  fontSize: '10px',
-  fontWeight: 'bold',
-  textTransform: 'uppercase'
-};
-
-const filterBar = { display: 'flex', gap: '15px', marginBottom: '25px' };
-const filterGroup = { display: 'flex', flexDirection: 'column', gap: '5px' };
-const labelStyle = { fontSize: '9px', fontWeight: '900', opacity: 0.5, letterSpacing: '1px', color: '#1b5e20' };
-const selectStyle = { padding: '8px 15px', borderRadius: '6px', backgroundColor: '#ffffff', color: '#333', border: '1px solid #c8e6c9', outline: 'none', fontSize: '12px', cursor: 'pointer' };
-const tableWrapper = { backgroundColor: '#ffffff', borderRadius: '15px', border: '1px solid #c8e6c9', overflow: 'hidden' };
-const thStyle = { padding: '18px 20px', textAlign: 'left', fontSize: '10px', letterSpacing: '1px', opacity: 0.6, fontWeight: '900', color: '#1b5e20' };
-const trStyle = { borderBottom: '1px solid #f1f8e9', transition: '0.2s' };
-const deleteBtn = { color: '#c62828', background: 'rgba(198,40,40,0.05)', border: '1px solid rgba(198,40,40,0.2)', padding: '5px 12px', borderRadius: '5px', cursor: 'pointer', fontSize: '10px', fontWeight: 'bold' };
-const activeTab = { background: '#1b5e20', color: 'white', border: 'none', padding: '10px 22px', borderRadius: '25px', fontWeight: '900', cursor: 'pointer', fontSize: '11px' };
-const activeTabRed = { background: '#c62828', color: 'white', border: 'none', padding: '10px 22px', borderRadius: '25px', fontWeight: '900', cursor: 'pointer', fontSize: '11px' };
-const inactiveTab = { background: '#ffffff', color: '#81c784', border: '1px solid #c8e6c9', padding: '10px 22px', borderRadius: '25px', cursor: 'pointer', fontSize: '11px' };
-const emptyState = { padding: '100px', textAlign: 'center', opacity: 0.4, fontSize: '13px', color: '#1b5e20' };
-
-const navLinkStyle = (current, path) => ({
-  color: current === path ? '#1b5e20' : '#81c784',
-  textDecoration: 'none',
-  fontWeight: 'bold',
-  fontSize: '11px',
-  borderBottom: current === path ? '2px solid #1b5e20' : 'none',
-  padding: '23px 0',
-  display: 'inline-block',
-  transition: '0.3s'
-});
