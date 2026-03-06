@@ -30,17 +30,25 @@ export default function DALogin() {
     }
   };
 
+  // FIXED RESET LOGIC
   const handleForgotPassword = async () => {
     if (!email) { 
       setMsg({ type: 'error', text: 'Please enter your Authorized Email first.' }); 
       return; 
     }
-    setMsg({ type: 'success', text: `Sending reset link to ${email}...` });
+    
+    // Set loading indicator specifically for reset
+    setMsg({ type: 'success', text: `Attempting to send reset link...` });
+    
     try {
       await sendPasswordResetEmail(auth, email);
-      setMsg({ type: 'success', text: 'Reset link sent successfully!' });
+      setMsg({ type: 'success', text: 'Reset link sent! Check your Inbox or Spam.' });
     } catch (error) { 
-      setMsg({ type: 'error', text: 'Error: Email not found.' }); 
+      // Handle common Firebase errors like user-not-found
+      const errorMessage = error.code === 'auth/user-not-found' 
+        ? 'Error: Email not registered.' 
+        : 'Error: Could not send reset email.';
+      setMsg({ type: 'error', text: errorMessage }); 
     }
   };
 
@@ -65,7 +73,7 @@ export default function DALogin() {
             <p style={subtitleStyle}>LOGIN AS ADMINISTRATOR</p> 
           </header>
 
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {msg.text && (
               <motion.div 
                 initial={{ opacity: 0, y: -10 }} 
@@ -74,7 +82,7 @@ export default function DALogin() {
                 style={notificationStyle(msg.type)}
               >
                 {msg.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
-                {msg.text}
+                <span style={{ marginLeft: '5px' }}>{msg.text}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -171,7 +179,6 @@ const glassCardStyle = {
   boxShadow: '0 20px 40px rgba(0, 0, 0, 0.4)', textAlign: 'center' 
 };
 
-// BAGONG BILOG NA LOGO WRAPPER
 const logoWrapper = { 
   width: '75px', height: '75px', backgroundColor: '#fff', 
   borderRadius: '50%', display: 'flex', justifyContent: 'center', 
@@ -180,7 +187,6 @@ const logoWrapper = {
 };
 
 const logoStyle = { width: '100%', height: 'auto', objectFit: 'contain' };
-
 const titleStyle = { color: '#ffffff', fontSize: '20px', fontWeight: '900', margin: '0', letterSpacing: '1px' };
 const subtitleStyle = { color: '#4ade80', fontSize: '9px', fontWeight: '800', letterSpacing: '2px', marginTop: '2px' };
 
