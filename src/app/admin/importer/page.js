@@ -176,7 +176,7 @@ export default function MasterlistPage() {
         </nav>
 
         <button onClick={() => setIsLogoutModalOpen(true)} style={styles.logoutBtn}>
-          <LogOut size={18} /> <span>Sign Out</span>
+          <LogOut size={18} /> <span>Logout</span>
         </button>
       </aside>
 

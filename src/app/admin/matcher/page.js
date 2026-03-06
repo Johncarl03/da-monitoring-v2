@@ -216,7 +216,7 @@ export default function DAGreenMatcher() {
         )}
 
         <button onClick={() => setShowLogoutModal(true)} style={styles.logoutBtn}>
-          <LogOut size={18} /> <span>Sign Out</span>
+          <LogOut size={18} /> <span>Logout</span>
         </button>
       </aside>
 
