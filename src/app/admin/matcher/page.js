@@ -7,10 +7,11 @@ import {
 } from 'firebase/firestore'; 
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion'; // Inimport ang motion
 import { 
   Database, Users, History, LogOut, 
   UploadCloud, Search, Calendar, CheckCircle2, 
-  AlertCircle, FolderOpen, Loader2, RefreshCcw, Info, BarChart3, Clock, TrendingUp, X
+  AlertCircle, FolderOpen, Loader2, RefreshCcw, Info, BarChart3, Clock, TrendingUp, X, ChevronDown
 } from 'lucide-react';
 
 export default function DAGreenMatcher() {
@@ -30,11 +31,13 @@ export default function DAGreenMatcher() {
   const [showLogoutModal, setShowLogoutModal] = useState(false); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [showMonthDrop, setShowMonthDrop] = useState(false);
+  const [showYearDrop, setShowYearDrop] = useState(false);
   
   const fileInputRef = useRef(null);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('default', { month: 'long' }));
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const years = Array.from({ length: 5 }, (_, i) => (new Date().getFullYear() - 1 + i).toString());
+  const [selectedMonth, setSelectedMonth] = useState('March');
+  const [selectedYear, setSelectedYear] = useState('2026');
+  const years = ["2025", "2026", "2027", "2028"];
 
   const totalInCurrentView = hasStub.length + missingStub.length + alreadyExists.length;
   const matchRate = totalInCurrentView > 0 ? Math.round(((hasStub.length + alreadyExists.length) / totalInCurrentView) * 100) : 0;
@@ -138,49 +141,54 @@ export default function DAGreenMatcher() {
 
   return (
     <div style={styles.container}>
-      {/* Modals - Plain Divs only, no motion */}
-      {showLogoutModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <div style={styles.modalIconBoxRed}><LogOut size={24}/></div>
-            <h3 style={styles.modalTitle}>Confirm Logout</h3>
-            <p style={styles.modalBody}>Are you sure you want to log out your account?</p>
-            <div style={styles.modalActions}>
-              <button onClick={() => setShowLogoutModal(false)} style={styles.cancelBtn}>Cancel</button>
-              <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
-            </div>
+      {/* Modals with AnimatePresence */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalCard}>
+              <div style={styles.modalIconBoxRed}><LogOut size={24}/></div>
+              <h3 style={styles.modalTitle}>Confirm Logout</h3>
+              <p style={styles.modalBody}>Are you sure you want to log out your account?</p>
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowLogoutModal(false)} style={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleLogout} style={styles.confirmLogoutBtn}>Logout</button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
 
-      {showSuccess && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <div style={styles.modalIconBoxGreen}><CheckCircle2 size={24}/></div>
-            <h3 style={styles.modalTitle}>Sync Complete</h3>
-            <p style={styles.modalBody}>Successfully matched {hasStub.length} farmers and saved to history logs.</p>
-            <button onClick={() => setShowSuccess(false)} style={styles.primaryBtn}>Done</button>
+        {showSuccess && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalCard}>
+              <div style={styles.modalIconBoxGreen}><CheckCircle2 size={24}/></div>
+              <h3 style={styles.modalTitle}>Sync Complete</h3>
+              <p style={styles.modalBody}>Successfully matched {hasStub.length} farmers and saved to history logs.</p>
+              <button onClick={() => setShowSuccess(false)} style={styles.primaryBtn}>Done</button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
 
-      {errorMsg && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
-            <div style={styles.modalIconBoxAmber}><AlertCircle size={24}/></div>
-            <h3 style={styles.modalTitle}>System Alert</h3>
-            <p style={styles.modalBody}>{errorMsg}</p>
-            <button onClick={() => setErrorMsg(null)} style={styles.primaryBtn}>Dismiss</button>
+        {errorMsg && (
+          <div style={styles.modalOverlay}>
+            <motion.div initial={{scale:0.9, opacity:0}} animate={{scale:1, opacity:1}} exit={{scale:0.9, opacity:0}} style={styles.modalCard}>
+              <div style={styles.modalIconBoxAmber}><AlertCircle size={24}/></div>
+              <h3 style={styles.modalTitle}>System Alert</h3>
+              <p style={styles.modalBody}>{errorMsg}</p>
+              <button onClick={() => setErrorMsg(null)} style={styles.primaryBtn}>Dismiss</button>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       <aside style={styles.sidebar}>
-        <div style={styles.logoBox}>
-          <img src="/da-logo.png" alt="DA" style={styles.logoImg} />
-          <div>
-            <h2 style={styles.logoText}>RSBSA</h2>
-            <p style={styles.logoTag}>ORIENTAL MINDORO</p>
+        <div style={styles.logoContainer}>
+          <div style={styles.logoCircle}>
+            <img src="/da-logo.png" alt="DA Logo" style={styles.logoImg} />
+          </div>
+          <div style={styles.logoTextWrapper}>
+            <h2 style={styles.logoTextMain}>RSBSA</h2>
+            <div style={styles.logoDivider}></div>
+            <p style={styles.logoTextSub}>ORIENTAL MINDORO</p>
           </div>
         </div>
         
@@ -194,17 +202,21 @@ export default function DAGreenMatcher() {
           <div style={styles.sidebarWidget}>
             <p style={styles.widgetLabel}><TrendingUp size={14}/> LIVE PROGRESS</p>
             <div style={styles.progressTrack}>
-              <div style={{...styles.progressFill, width: `${matchRate}%`}}></div>
+              <motion.div 
+                initial={{ width: 0 }} 
+                animate={{ width: `${matchRate}%` }} 
+                style={styles.progressFill}
+              />
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '8px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px'}}>
               <span style={styles.widgetStat}>{matchRate}% Matched</span>
-              <span style={styles.widgetStat}>{hasStub.length + alreadyExists.length}/{totalInCurrentView}</span>
+              <span style={styles.widgetStatBold}>{hasStub.length + alreadyExists.length}/{totalInCurrentView}</span>
             </div>
           </div>
         )}
 
         <button onClick={() => setShowLogoutModal(true)} style={styles.logoutBtn}>
-          <LogOut size={18} /> Logout
+          <LogOut size={18} /> <span>Sign Out</span>
         </button>
       </aside>
 
@@ -226,24 +238,44 @@ export default function DAGreenMatcher() {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}><Database size={18} /> Matching Configuration</h3>
               <div style={styles.formGroup}>
+                
                 <div style={styles.field}>
                   <label style={styles.label}>DISTRIBUTION MONTH</label>
-                  <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} style={styles.select}>
-                    {["January","February","March","April","May","June","July","August","September","October","November","December"].map(m => <option key={m}>{m}</option>)}
-                  </select>
+                  <div style={styles.selectTrigger} onClick={() => {setShowMonthDrop(!showMonthDrop); setShowYearDrop(false)}}>
+                    {selectedMonth} <ChevronDown size={14} />
+                  </div>
+                  <AnimatePresence>
+                    {showMonthDrop && (
+                      <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} exit={{opacity:0}} style={styles.dropdownList}>
+                        {["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].map(m => (
+                          <div key={m} style={styles.dropItem} onClick={() => {setSelectedMonth(m); setShowMonthDrop(false)}}>{m}</div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
+
                 <div style={styles.field}>
                   <label style={styles.label}>TARGET YEAR</label>
-                  <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)} style={styles.select}>
-                    {years.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
+                  <div style={styles.selectTrigger} onClick={() => {setShowYearDrop(!showYearDrop); setShowMonthDrop(false)}}>
+                    {selectedYear} <ChevronDown size={14} />
+                  </div>
+                  <AnimatePresence>
+                    {showYearDrop && (
+                      <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} exit={{opacity:0}} style={styles.dropdownList}>
+                        {years.map(y => (
+                          <div key={y} style={styles.dropItem} onClick={() => {setSelectedYear(y); setShowYearDrop(false)}}>{y}</div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 
                 <div 
                   onClick={() => !isScanning && masterlist.length > 0 && fileInputRef.current.click()} 
                   style={{...styles.uploadArea, opacity: masterlist.length === 0 ? 0.5 : 1, cursor: masterlist.length === 0 ? 'not-allowed' : 'pointer'}}
                 >
-                  {isScanning ? <Loader2 size={32} className="spin" color="#81c784" /> : <UploadCloud size={32} color="#81c784" />}
+                  {isScanning ? <Loader2 size={32} className="spin" color="#143d16" /> : <UploadCloud size={32} color="#143d16" />}
                   <span style={{fontSize: '14px', fontWeight: '800', color: '#143d16', marginTop: '10px'}}>
                     {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
                   </span>
@@ -254,20 +286,19 @@ export default function DAGreenMatcher() {
             </div>
 
             <div style={styles.infoColumn}>
-              <div style={styles.infoCard}>
-                <h3 style={styles.infoCardTitle}><BarChart3 size={18}/> System Readiness</h3>
-                <div style={styles.statsRow}>
-                  <div style={styles.statBox}>
-                    <span style={styles.statLabel}>Total Farmers</span>
-                    <span style={styles.statValue}>{masterlist.length}</span>
-                  </div>
-                  <div style={styles.statBox}>
-                    <span style={styles.statLabel}>Database</span>
-                    <span style={{...styles.statValue, color: '#143d16'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</span>
-                  </div>
+              <div style={styles.statusGrid}>
+                <div style={styles.statusCard}>
+                  <span style={styles.statusLabel}>Total Farmers</span>
+                  <h2 style={styles.statusValue}>{masterlist.length}</h2>
                 </div>
-                
-                <h3 style={{...styles.infoCardTitle, marginTop: '10px'}}><Clock size={18}/> Recent Activity</h3>
+                <div style={styles.statusCard}>
+                  <span style={styles.statusLabel}>Data</span>
+                  <h2 style={{...styles.statusValue, color: '#143d16'}}>{masterlist.length > 0 ? "Ready" : "Syncing"}</h2>
+                </div>
+              </div>
+              
+              <div style={styles.activityCard}>
+                <h3 style={styles.cardTitle}><Clock size={18}/> Recent Activity</h3>
                 <div style={styles.activityList}>
                   {lastScans.length > 0 ? lastScans.map(scan => (
                     <div key={scan.id} style={styles.activityItem}>
@@ -283,11 +314,11 @@ export default function DAGreenMatcher() {
             </div>
           </div>
         ) : (
-          <div style={styles.resultGridThreeCol}>
+          <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} style={styles.resultGridThreeCol}>
             <ResultCol title={`NEW (${hasStub.length})`} icon={<CheckCircle2 size={18}/>} color="#1b5e20" bg="#c8e6c9" data={hasStub} type="matched" groupFn={groupData} />
             <ResultCol title={`MISSING (${missingStub.length})`} icon={<AlertCircle size={18}/>} color="#991b1b" bg="#fecaca" data={missingStub} type="missing" groupFn={groupData} />
             <ResultCol title={`ISSUED (${alreadyExists.length})`} icon={<Info size={18}/>} color="#92400e" bg="#fde68a" data={alreadyExists} type="duplicate" groupFn={groupData} />
-          </div>
+          </motion.div>
         )}
       </main>
 
@@ -329,7 +360,7 @@ const ResultCol = ({ title, icon, color, bg, data, type, groupFn }) => (
                 </div>
                 <div style={styles.farmerList}>
                   {content.farmers.map(f => (
-                    <div key={f.id} style={{...styles.farmerItem, borderLeftColor: color}}>{f.name}</div>
+                    <motion.div layout initial={{opacity:0}} animate={{opacity:1}} key={f.id} style={{...styles.farmerItem, borderLeftColor: color}}>{f.name}</motion.div>
                   ))}
                 </div>
               </div>
@@ -349,53 +380,72 @@ const EmptyState = ({ msg }) => (
 
 const styles = {
   container: { display: 'flex', height: '100vh', backgroundColor: '#d1dbd1', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
-  sidebar: { width: '260px', backgroundColor: '#143d16', borderRight: '1px solid #0d290f', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
-  logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
-  logoImg: { width: '38px', height: '38px' },
-  logoText: { fontSize: '16px', fontWeight: '900', color: '#ffffff', margin: 0 },
-  logoTag: { fontSize: '9px', fontWeight: '700', color: '#a3b8a3', margin: 0 },
-  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
-  
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(20, 61, 22, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
-  modalCard: { background: '#f1f5f1', width: '90%', maxWidth: '400px', padding: '30px', borderRadius: '24px', textAlign: 'center', border: '1px solid #acc2ac' },
-  modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalIconBoxGreen: { width: '50px', height: '50px', background: '#dcfce7', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalIconBoxAmber: { width: '50px', height: '50px', background: '#fef3c7', color: '#92400e', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
-  modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#143d16' },
-  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' },
-  modalActions: { display: 'flex', gap: '12px' },
-  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #acc2ac', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#4b5563' },
-  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#991b1b', color: '#fff', fontWeight: '700', cursor: 'pointer' },
-  primaryBtn: { width: '100%', padding: '12px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
-
-  sidebarWidget: { padding: '16px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', marginBottom: '20px' },
+  sidebar: { 
+    width: '280px', 
+    backgroundColor: '#0d290f', 
+    backgroundImage: 'linear-gradient(180deg, #143d16 0%, #0a1f0b 100%)',
+    borderRight: '1px solid rgba(255,255,255,0.05)', 
+    padding: '40px 24px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    flexShrink: 0,
+    boxShadow: '4px 0 15px rgba(0,0,0,0.1)'
+  },
+  logoContainer: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    textAlign: 'center', marginBottom: '48px', paddingBottom: '20px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)'
+  },
+  logoCircle: {
+    width: '70px', height: '70px', backgroundColor: '#ffffff',
+    borderRadius: '50%', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', marginBottom: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)', padding: '8px'
+  },
+  logoImg: { width: '100%', height: 'auto', objectFit: 'contain' },
+  logoTextWrapper: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  logoTextMain: { fontSize: '22px', fontWeight: '900', color: '#ffffff', margin: 0, letterSpacing: '2px' },
+  logoDivider: { width: '30px', height: '2px', backgroundColor: '#81c784', margin: '4px 0' },
+  logoTextSub: { fontSize: '10px', fontWeight: '700', color: '#81c784', margin: 0, letterSpacing: '1px' },
+  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' },
+  sidebarWidget: { 
+    padding: '20px', background: 'rgba(255, 255, 255, 0.05)', 
+    borderRadius: '18px', border: '1px solid rgba(255,255,255,0.1)', 
+    marginBottom: '24px', backdropFilter: 'blur(5px)'
+  },
   widgetLabel: { fontSize: '10px', fontWeight: '800', color: '#81c784', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' },
   progressTrack: { height: '8px', background: '#0d290f', borderRadius: '4px', overflow: 'hidden' },
-  progressFill: { height: '100%', background: '#81c784', borderRadius: '4px', transition: 'width 0.5s ease' },
+  progressFill: { height: '100%', background: '#81c784', borderRadius: '4px' },
   widgetStat: { fontSize: '10px', fontWeight: '700', color: '#ffffff' },
-
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#2d0a0a', color: '#ff8a8a', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  widgetStatBold: { fontSize: '11px', fontWeight: '800', color: '#81c784' },
+  logoutBtn: { 
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    gap: '10px', padding: '14px', border: '1px solid rgba(255,138,138,0.2)', 
+    background: 'rgba(45, 10, 10, 0.4)', color: '#ff8a8a', borderRadius: '12px', 
+    cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: 'all 0.3s ease' 
+  },
   main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
   headerInfo: { display: 'flex', flexDirection: 'column' },
   title: { fontSize: '28px', fontWeight: '900', color: '#0d290f', margin: 0 },
   subtitle: { color: '#4a614a', fontSize: '14px', margin: 0 },
   reScanBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 16px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '12px' },
-  contentGrid: { display: 'grid', gridTemplateColumns: '340px 1fr', gap: '32px', alignItems: 'start' },
-  card: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac' },
+  contentGrid: { display: 'grid', gridTemplateColumns: '320px 1fr', gap: '32px', alignItems: 'start' },
+  card: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac', position: 'relative' },
   cardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '16px', fontWeight: '800', color: '#143d16', marginBottom: '20px' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '16px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '6px' },
+  field: { display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' },
   label: { fontSize: '10px', fontWeight: '800', color: '#4a614a', letterSpacing: '0.8px' },
-  select: { padding: '10px', background: '#f0f4f0', border: '1px solid #acc2ac', borderRadius: '10px', fontSize: '13px', fontWeight: '600', outline: 'none', color: '#143d16' },
-  uploadArea: { border: '2px dashed #8ba88b', borderRadius: '16px', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#d8e4d8' },
+  selectTrigger: { padding: '12px', background: '#f0f4f0', border: '1px solid #acc2ac', borderRadius: '10px', fontSize: '13px', fontWeight: '600', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', color: '#143d16' },
+  dropdownList: { position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #acc2ac', borderRadius: '12px', zIndex: 10, maxHeight: '200px', overflowY: 'auto', marginTop: '5px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+  dropItem: { padding: '10px 15px', fontSize: '13px', cursor: 'pointer', color: '#143d16', borderBottom: '1px solid #f0f4f0' },
+  uploadArea: { border: '2px dashed #acc2ac', borderRadius: '20px', padding: '40px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', background: '#d8e4d8', marginTop: '10px' },
   infoColumn: { display: 'flex', flexDirection: 'column', gap: '24px' },
-  infoCard: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac' },
-  infoCardTitle: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: '800', color: '#143d16', marginBottom: '16px' },
-  statsRow: { display: 'flex', gap: '16px', marginBottom: '24px' },
-  statBox: { flex: 1, padding: '16px', background: '#d8e4d8', borderRadius: '16px', border: '1px solid #acc2ac', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', justifyContent: 'center', textAlign: 'center' },
-  statLabel: { fontSize: '9px', fontWeight: '800', color: '#4a614a', textTransform: 'uppercase' },
-  statValue: { fontSize: '18px', fontWeight: '900', color: '#143d16' },
+  statusGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' },
+  statusCard: { background: '#e2ede2', padding: '20px', borderRadius: '20px', border: '1px solid #acc2ac', textAlign: 'center' },
+  statusLabel: { fontSize: '10px', fontWeight: '800', color: '#4a614a', textTransform: 'uppercase' },
+  statusValue: { fontSize: '24px', fontWeight: '900', color: '#4a614a', margin: '8px 0 0 0' },
+  activityCard: { background: '#e2ede2', padding: '24px', borderRadius: '24px', border: '1px solid #acc2ac', minHeight: '320px' },
   activityList: { display: 'flex', flexDirection: 'column', gap: '12px' },
   activityItem: { display: 'flex', gap: '12px', alignItems: 'flex-start' },
   activityDot: { width: '8px', height: '8px', borderRadius: '50%', background: '#143d16', marginTop: '5px' },
@@ -413,5 +463,16 @@ const styles = {
   brgyName: { fontSize: '11px', fontWeight: '700', color: '#143d16' },
   faBadge: { fontSize: '9px', fontWeight: '800', padding: '2px 8px', borderRadius: '6px', color: '#143d16' },
   farmerList: { display: 'flex', flexDirection: 'column', gap: '4px' },
-  farmerItem: { padding: '6px 12px', background: '#e2ede2', fontSize: '11px', borderRadius: '0 6px 6px 0', borderLeft: '3px solid', color: '#2d3b2d' }
+  farmerItem: { padding: '6px 12px', background: '#e2ede2', fontSize: '11px', borderRadius: '0 6px 6px 0', borderLeft: '3px solid', color: '#2d3b2d' },
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(20, 61, 22, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 3000 },
+  modalCard: { background: '#f1f5f1', width: '90%', maxWidth: '400px', padding: '30px', borderRadius: '24px', textAlign: 'center', border: '1px solid #acc2ac' },
+  modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxGreen: { width: '50px', height: '50px', background: '#dcfce7', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalIconBoxAmber: { width: '50px', height: '50px', background: '#fef3c7', color: '#92400e', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
+  modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#143d16' },
+  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' },
+  modalActions: { display: 'flex', gap: '12px' },
+  cancelBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: '1px solid #acc2ac', background: 'none', fontWeight: '700', cursor: 'pointer', color: '#4b5563' },
+  confirmLogoutBtn: { flex: 1, padding: '12px', borderRadius: '12px', border: 'none', background: '#991b1b', color: '#fff', fontWeight: '700', cursor: 'pointer' },
+  primaryBtn: { width: '100%', padding: '12px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '12px', fontWeight: '700', cursor: 'pointer' },
 };

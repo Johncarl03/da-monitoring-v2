@@ -29,7 +29,8 @@ export default function HistoryPage() {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const yearsOptions = Array.from({ length: 5 }, (_, i) => (currentYear - 1 + i).toString());
+  // Pinatili ang 2025 hanggang 2028 gaya ng request mo
+  const yearsOptions = ["2025", "2026", "2027", "2028"];
 
   useEffect(() => {
     const savedMonth = localStorage.getItem('selectedMonth');
@@ -107,20 +108,25 @@ export default function HistoryPage() {
   return (
     <div style={styles.container}>
       <aside style={styles.sidebar}>
-        <div style={styles.logoBox}>
-          <img src="/da-logo.png" alt="DA" style={styles.logoImg} />
-          <div>
-            <h2 style={styles.logoText}>RSBSA</h2>
-            <p style={styles.logoTag}>ORIENTAL MINDORO</p>
+        <div style={styles.logoContainer}>
+          <div style={styles.logoCircle}>
+            <img src="/da-logo.png" alt="DA Logo" style={styles.logoImg} />
+          </div>
+          <div style={styles.logoTextWrapper}>
+            <h2 style={styles.logoTextMain}>RSBSA</h2>
+            <div style={styles.logoDivider}></div>
+            <p style={styles.logoTextSub}>ORIENTAL MINDORO</p>
           </div>
         </div>
+        
         <nav style={styles.nav}>
           <SidebarBtn icon={<Database size={20}/>} label="Stub Matcher" active={pathname.includes('matcher')} onClick={() => router.push('/admin/matcher')} />
           <SidebarBtn icon={<Users size={20}/>} label="Masterlist" active={pathname.includes('importer')} onClick={() => router.push('/admin/importer')} />
           <SidebarBtn icon={<History size={20}/>} label="History Logs" active={pathname.includes('history')} onClick={() => router.push('/admin/history')} />
         </nav>
+
         <button onClick={() => setIsLogoutModalOpen(true)} style={styles.logoutBtn}>
-          <LogOut size={18} /> Logout
+          <LogOut size={18} /> <span>Sign Out</span>
         </button>
       </aside>
 
@@ -183,7 +189,7 @@ export default function HistoryPage() {
                 <th style={styles.th}>FARMER NAME</th>
                 <th style={{...styles.th, textAlign: 'center'}}>FA</th>
                 <th style={{...styles.th, textAlign: 'center'}}>MUNICIPALITY</th>
-                <th style={styles.th}>BARANGAY</th>
+                <th style={{...styles.th, textAlign: 'center'}}>BARANGAY</th>
                 <th style={{...styles.th, textAlign: 'center', width: '150px'}}>STATUS</th>
               </tr>
             </thead>
@@ -223,7 +229,6 @@ export default function HistoryPage() {
         </div>
       </main>
 
-      {/* --- Modals Section --- */}
       <AnimatePresence>
         {isLogoutModalOpen && (
           <div style={styles.modalOverlay}>
@@ -275,22 +280,48 @@ const SidebarBtn = ({ icon, label, active, onClick }) => (
 
 const styles = {
   container: { display: 'flex', height: '100vh', backgroundColor: '#d1dbd1', fontFamily: "'Inter', sans-serif", overflow: 'hidden' },
-  sidebar: { width: '260px', backgroundColor: '#143d16', borderRight: '1px solid #0d290f', padding: '30px 20px', display: 'flex', flexDirection: 'column', flexShrink: 0 },
-  logoBox: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' },
-  logoImg: { width: '38px', height: '38px' },
-  logoText: { fontSize: '16px', fontWeight: '900', color: '#ffffff', margin: 0 },
-  logoTag: { fontSize: '9px', fontWeight: '700', color: '#a3b8a3', margin: 0 },
-  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' },
-  logoutBtn: { display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', border: 'none', background: '#2d0a0a', color: '#ff8a8a', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' },
+  
+  sidebar: { 
+    width: '280px', 
+    backgroundColor: '#0d290f', 
+    backgroundImage: 'linear-gradient(180deg, #143d16 0%, #0a1f0b 100%)',
+    borderRight: '1px solid rgba(255,255,255,0.05)', 
+    padding: '40px 24px', 
+    display: 'flex', 
+    flexDirection: 'column', 
+    flexShrink: 0,
+    boxShadow: '4px 0 15px rgba(0,0,0,0.1)'
+  },
+  logoContainer: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center',
+    textAlign: 'center', marginBottom: '48px', paddingBottom: '20px',
+    borderBottom: '1px solid rgba(255,255,255,0.1)'
+  },
+  logoCircle: {
+    width: '70px', height: '70px', backgroundColor: '#ffffff',
+    borderRadius: '50%', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', marginBottom: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)', padding: '8px'
+  },
+  logoImg: { width: '100%', height: 'auto', objectFit: 'contain' },
+  logoTextWrapper: { display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  logoTextMain: { fontSize: '22px', fontWeight: '900', color: '#ffffff', margin: 0, letterSpacing: '2px' },
+  logoDivider: { width: '30px', height: '2px', backgroundColor: '#81c784', margin: '4px 0' },
+  logoTextSub: { fontSize: '10px', fontWeight: '700', color: '#81c784', margin: 0, letterSpacing: '1px' },
+  nav: { flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' },
+  logoutBtn: { 
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    gap: '10px', padding: '14px', border: '1px solid rgba(255,138,138,0.2)', 
+    background: 'rgba(45, 10, 10, 0.4)', color: '#ff8a8a', borderRadius: '12px', 
+    cursor: 'pointer', fontWeight: '700', fontSize: '14px', transition: 'all 0.3s ease' 
+  },
   
   main: { flex: 1, padding: '24px 40px', overflowY: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' },
   title: { fontSize: '28px', fontWeight: '900', color: '#0d290f', margin: 0 },
   subtitle: { color: '#4a614a', fontSize: '14px', margin: 0 },
-  
   searchBox: { position: 'relative', display: 'flex', alignItems: 'center' },
   searchInput: { padding: '12px 20px 12px 45px', borderRadius: '50px', border: '1px solid #acc2ac', background: '#e2ede2', width: '300px', fontSize: '14px', outline: 'none', color: '#143d16' },
-
   filterBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' },
   filterGroup: { display: 'flex', gap: '12px' },
   selectWrapper: { display: 'flex', alignItems: 'center', background: '#e2ede2', padding: '8px 14px', borderRadius: '12px', border: '1px solid #acc2ac' },
@@ -299,19 +330,17 @@ const styles = {
   activeTab: { display: 'flex', alignItems: 'center', gap: '6px', background: '#143d16', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
   activeTabRed: { display: 'flex', alignItems: 'center', gap: '6px', background: '#991b1b', color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '700', cursor: 'pointer' },
   inactiveTab: { display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', color: '#4a614a', border: 'none', padding: '10px 18px', borderRadius: '10px', fontSize: '12px', fontWeight: '600', cursor: 'pointer' },
-  
   tableCard: { background: '#e2ede2', borderRadius: '24px', border: '1px solid #acc2ac', overflow: 'hidden' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { textAlign: 'left', padding: '18px 24px', background: '#d8e4d8', fontSize: '11px', fontWeight: '800', color: '#143d16', borderBottom: '1px solid #acc2ac' },
   tr: { borderBottom: '1px solid #acc2ac' },
   tdName: { padding: '18px 24px', fontWeight: '700', color: '#0d290f', fontSize: '13px' },
-  tdDim: { padding: '18px 24px', color: '#4a614a', fontSize: '13px' },
+  tdDim: { padding: '18px 24px', color: '#4a614a', fontSize: '13px', textAlign: 'center' }, 
   tdCenter: { padding: '18px 24px', textAlign: 'center', verticalAlign: 'middle' },
   faBadge: { background: '#f0f4f0', color: '#143d16', padding: '4px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: '700', display: 'inline-block', border: '1px solid #acc2ac' },
   delBtn: { display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#8ba88b', cursor: 'pointer', fontWeight: '800', fontSize: '11px', padding: '6px 12px' },
   missingLabel: { display: 'inline-flex', alignItems: 'center', color: '#991b1b', fontWeight: '800', fontSize: '11px', background: '#fee2e2', padding: '6px 12px', borderRadius: '8px' },
   emptyState: { padding: '100px', textAlign: 'center', color: '#acc2ac' },
-
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(20, 61, 22, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 },
   modalContent: { background: '#f1f5f1', padding: '30px', borderRadius: '24px', width: '90%', maxWidth: '400px', textAlign: 'center', border: '1px solid #acc2ac' },
   modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
