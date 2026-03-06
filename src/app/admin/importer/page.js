@@ -458,7 +458,7 @@ const styles = {
   modalIconBoxRed: { width: '50px', height: '50px', background: '#fee2e2', color: '#991b1b', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
   modalIconBoxGreen: { width: '50px', height: '50px', background: '#dcfce7', color: '#166534', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' },
   modalTitle: { margin: '0 0 10px 0', fontSize: '18px', fontWeight: '800', color: '#143d16' },
-  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' },
+  modalBody: { margin: '0 0 25px 0', fontSize: '14px', color: '#4b5563', lineHeight: '1.6' }, 
   modalActions: { display: 'flex', gap: '12px' },
   modalInput: { flex: 1, padding: '10px 15px', borderRadius: '10px', border: '1px solid #acc2ac', outline: 'none', fontSize: '13px' },
   modalAddBtn: { padding: '10px 20px', background: '#143d16', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' },
