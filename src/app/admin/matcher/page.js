@@ -7,7 +7,7 @@ import {
 } from 'firebase/firestore'; 
 import { signOut } from 'firebase/auth';
 import { useRouter, usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion'; // Inimport ang motion
+import { motion, AnimatePresence } from 'framer-motion'; 
 import { 
   Database, Users, History, LogOut, 
   UploadCloud, Search, Calendar, CheckCircle2, 
@@ -80,49 +80,83 @@ export default function DAGreenMatcher() {
       return;
     }
     setIsScanning(true);
-    const uploadedFileNames = files.map(file => file.name.split('.').slice(0, -1).join('.'));
-    let detectedFolderName = files[0].webkitRelativePath ? files[0].webkitRelativePath.split('/')[0] : "";
-    const currentFA = detectedFolderName.toUpperCase() || "UNASSIGNED FA";
-    
+
     try {
+      // LOGIC: Kuhanin ang unique na names mula sa sub-folder names (Farmer Folders)
+      const detectedFarmerFolders = new Set();
+      let detectedFA = "UNASSIGNED FA";
+
+      files.forEach(file => {
+        const pathParts = file.webkitRelativePath.split('/');
+        
+        // Structure: AssociationName / FarmerName / image.jpg
+        if (pathParts.length >= 2) {
+          detectedFA = pathParts[0].toUpperCase();
+          const folderName = pathParts[1];
+          
+          // I-filter ang mga system files or hidden files
+          if (folderName && !folderName.startsWith('.') && !folderName.includes('.')) {
+            detectedFarmerFolders.add(folderName);
+          }
+        }
+      });
+
+      const folderNamesArray = Array.from(detectedFarmerFolders);
+      const currentFA = detectedFA;
+      
       const historyRef = collection(db, "distribution_history");
       const q = query(historyRef, where("month", "==", selectedMonth), where("year", "==", selectedYear));
       const existingSnap = await getDocs(q);
       const existingNames = existingSnap.docs.map(doc => doc.data().name);
 
+      // MATCHING: Folder Name vs Masterlist Name
       const duplicates = masterlist.filter(farmer => 
-        uploadedFileNames.some(fName => isSmartMatch(farmer.name, fName)) &&
+        folderNamesArray.some(fName => isSmartMatch(farmer.name, fName)) &&
         existingNames.some(extName => isSmartMatch(extName, farmer.name))
-      ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
+      ).map(f => ({ ...f, forcedFA: currentFA }));
 
       const matchedFarmers = masterlist.filter(farmer => 
-        uploadedFileNames.some(fName => isSmartMatch(farmer.name, fName)) &&
+        folderNamesArray.some(fName => isSmartMatch(farmer.name, fName)) &&
         !existingNames.some(extName => isSmartMatch(extName, farmer.name))
-      ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
+      ).map(f => ({ ...f, forcedFA: currentFA }));
 
       const activeLocations = new Set([...matchedFarmers, ...duplicates].map(f => `${f.municipality}-${f.barangay}`));
+      
       const missingFarmers = masterlist.filter(f => 
-        !uploadedFileNames.some(fName => isSmartMatch(f.name, fName)) && 
+        !folderNamesArray.some(fName => isSmartMatch(f.name, fName)) && 
         !existingNames.some(extName => isSmartMatch(extName, f.name)) &&
         activeLocations.has(`${f.municipality}-${f.barangay}`)
-      ).map(f => ({ ...f, forcedFA: f.association || f.fa || currentFA }));
+      ).map(f => ({ ...f, forcedFA: currentFA }));
 
       if (matchedFarmers.length > 0) {
         const batch = writeBatch(db);
         matchedFarmers.forEach((farmer) => {
           const newDocRef = doc(collection(db, "distribution_history"));
           batch.set(newDocRef, {
-            farmerId: farmer.id, name: farmer.name, municipality: farmer.municipality,
-            barangay: farmer.barangay, association: farmer.forcedFA,
-            month: selectedMonth, year: selectedYear, dateProcessed: serverTimestamp(),
-            source: "Auto-Scan"
+            farmerId: farmer.id, 
+            name: farmer.name, 
+            municipality: farmer.municipality,
+            barangay: farmer.barangay, 
+            association: currentFA,
+            month: selectedMonth, 
+            year: selectedYear, 
+            dateProcessed: serverTimestamp(),
+            source: "Folder-Scan"
           });
         });
         await batch.commit();
         setShowSuccess(true);
       }
-      setHasStub(matchedFarmers); setMissingStub(missingFarmers); setAlreadyExists(duplicates); setHasData(true);
-    } catch (err) { setErrorMsg("An error occurred during scanning."); } finally { setIsScanning(false); }
+      setHasStub(matchedFarmers); 
+      setMissingStub(missingFarmers); 
+      setAlreadyExists(duplicates); 
+      setHasData(true);
+    } catch (err) { 
+      console.error(err);
+      setErrorMsg("An error occurred during scanning."); 
+    } finally { 
+      setIsScanning(false); 
+    }
   };
 
   const groupData = (data) => {
@@ -141,7 +175,6 @@ export default function DAGreenMatcher() {
 
   return (
     <div style={styles.container}>
-      {/* Modals with AnimatePresence */}
       <AnimatePresence>
         {showLogoutModal && (
           <div style={styles.modalOverlay}>
@@ -202,11 +235,7 @@ export default function DAGreenMatcher() {
           <div style={styles.sidebarWidget}>
             <p style={styles.widgetLabel}><TrendingUp size={14}/> LIVE PROGRESS</p>
             <div style={styles.progressTrack}>
-              <motion.div 
-                initial={{ width: 0 }} 
-                animate={{ width: `${matchRate}%` }} 
-                style={styles.progressFill}
-              />
+              <motion.div initial={{ width: 0 }} animate={{ width: `${matchRate}%` }} style={styles.progressFill} />
             </div>
             <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '10px'}}>
               <span style={styles.widgetStat}>{matchRate}% Matched</span>
@@ -238,7 +267,6 @@ export default function DAGreenMatcher() {
             <div style={styles.card}>
               <h3 style={styles.cardTitle}><Database size={18} /> Matching Configuration</h3>
               <div style={styles.formGroup}>
-                
                 <div style={styles.field}>
                   <label style={styles.label}>DISTRIBUTION MONTH</label>
                   <div style={styles.selectTrigger} onClick={() => {setShowMonthDrop(!showMonthDrop); setShowYearDrop(false)}}>
@@ -279,7 +307,7 @@ export default function DAGreenMatcher() {
                   <span style={{fontSize: '14px', fontWeight: '800', color: '#143d16', marginTop: '10px'}}>
                     {masterlist.length === 0 ? "Loading Masterlist..." : isScanning ? "Syncing to Cloud..." : "Select Folder"}
                   </span>
-                  <p style={{fontSize: '11px', color: '#4a614a', textAlign: 'center', margin: '4px 0 0 0'}}>System matches file names against the Stub</p>
+                  <p style={{fontSize: '11px', color: '#4a614a', textAlign: 'center', margin: '4px 0 0 0'}}>Matches folder names against the Masterlist</p>
                   <input type="file" ref={fileInputRef} webkitdirectory="true" directory="true" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
                 </div>
               </div>
