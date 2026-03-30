@@ -17,11 +17,11 @@ import {
 export default function DAGreenMatcher() {
   const router = useRouter();
   const pathname = usePathname();
-  
+    
   // --- Data States ---
   const [masterlist, setMasterlist] = useState([]);
   const [lastScans, setLastScans] = useState([]);
-  const [hasStub, setHasStub] = useState([]);
+  const [hasStub, setHasStub] = useState([]);   
   const [missingStub, setMissingStub] = useState([]);
   const [alreadyExists, setAlreadyExists] = useState([]); 
   const [isScanning, setIsScanning] = useState(false);
